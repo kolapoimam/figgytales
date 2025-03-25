@@ -22,15 +22,17 @@ const LoginButton: React.FC = () => {
   }
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() => login('google')}
-      className="flex items-center gap-2"
-    >
-      <LogIn size={16} />
-      <span>Sign in with Google</span>
-    </Button>
+    <div className="flex flex-col sm:flex-row gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => login('google')}
+        className="flex items-center gap-2"
+      >
+        <LogIn size={16} />
+        <span>Sign in with Google</span>
+      </Button>
+    </div>
   );
 };
 

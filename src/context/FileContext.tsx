@@ -1,7 +1,8 @@
-import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import { DesignFile, StorySettings, UserStory, GenerationHistory, ShareLink, User, AIRequest, AIResponse } from '@/lib/types';
 import { toast } from "sonner";
 import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FileContextType {
   files: DesignFile[];
@@ -34,13 +35,46 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [history, setHistory] = useState<GenerationHistory[]>([]);
 
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session && session.user) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || null,
+            avatar: session.user.user_metadata.avatar_url || null
+          });
+          getHistory();
+        } else {
+          setUser(null);
+          setHistory([]);
+        }
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session && session.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || null,
+          avatar: session.user.user_metadata.avatar_url || null
+        });
+        getHistory();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const addFiles = useCallback((newFiles: File[]) => {
-    // Filter for image files
     const imageFiles = newFiles.filter(file => 
       file.type.startsWith('image/')
     );
     
-    // Check if adding these would exceed the 5-file limit
     if (files.length + imageFiles.length > 5) {
       toast.error("Maximum 5 files allowed", {
         description: `You can only upload up to 5 design files.`
@@ -48,7 +82,6 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    // Create preview URLs and add files
     const filesWithPreviews = imageFiles.map(file => ({
       id: crypto.randomUUID(),
       file,
@@ -68,7 +101,6 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     setFiles(prev => {
       const fileToRemove = prev.find(file => file.id === id);
       if (fileToRemove) {
-        // Revoke the object URL to prevent memory leaks
         URL.revokeObjectURL(fileToRemove.preview);
       }
       return prev.filter(file => file.id !== id);
@@ -80,25 +112,17 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const clearFiles = useCallback(() => {
-    // Revoke all object URLs to prevent memory leaks
     files.forEach(file => {
       URL.revokeObjectURL(file.preview);
     });
     setFiles([]);
-    // Clear stories but don't touch user state
-    setStories([]);
   }, [files]);
 
-  // Function to generate stories using Gemini API
   const generateStories = useCallback(async () => {
     if (files.length === 0) return;
     
     setIsGenerating(true);
     try {
-      // Mock Gemini API call for now
-      // In a real implementation, you would send the images to the Gemini API
-      
-      // Convert images to base64 for API
       const imagePromises = files.map(file => {
         return new Promise<string>((resolve) => {
           const reader = new FileReader();
@@ -111,74 +135,56 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
       
       const imageBase64s = await Promise.all(imagePromises);
       
-      // Simulate API call
-      setTimeout(() => {
-        const components = [
-          'Login Form', 'Dashboard', 'Navigation Menu', 'Profile Page', 
-          'Settings Panel', 'Search Bar', 'Data Table', 'Notification System', 
-          'Checkout Flow', 'Image Gallery'
-        ];
+      const aiRequest: AIRequest = {
+        prompt: `Generate ${settings.storyCount} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens.`,
+        images: imageBase64s,
+        storyCount: settings.storyCount,
+        criteriaCount: settings.criteriaCount
+      };
+      
+      const { data, error } = await supabase.functions.invoke('generate-stories', {
+        body: aiRequest
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data && data.stories) {
+        setStories(data.stories);
         
-        const interactionTriggers = [
-          'clicks', 'hovers', 'scrolls', 'inputs text', 'selects an option'
-        ];
-        
-        const interactionActions = [
-          'submit the form', 'navigate to a new page', 'display a tooltip',
-          'show a modal', 'update the data', 'trigger an animation'
-        ];
-        
-        const newStories: UserStory[] = [];
-        
-        for (let i = 0; i < settings.storyCount; i++) {
-          const component = components[Math.floor(Math.random() * components.length)];
-          
-          const criteria = Array.from({ length: settings.criteriaCount }, (_, j) => {
-            const trigger = interactionTriggers[Math.floor(Math.random() * interactionTriggers.length)];
-            const action = interactionActions[Math.floor(Math.random() * interactionActions.length)];
-            
-            return {
-              id: crypto.randomUUID(),
-              description: j < 2
-                ? `When the user ${trigger}, the component should ${action}`
-                : [
-                    'The component should be responsive across all device sizes',
-                    'The component should be accessible with proper ARIA attributes',
-                    'The component should load within 500ms',
-                    'The component should display validation errors when appropriate',
-                    'The component should match the design system specifications'
-                  ][Math.floor(Math.random() * 5)]
-            };
-          });
-          
-          newStories.push({
-            id: crypto.randomUUID(),
-            title: `User Story ${i + 1}`,
-            description: `As a user, I want to interact with the ${component}, so that I can accomplish my task effectively.`,
-            criteria
-          });
-        }
-        
-        setStories(newStories);
-        setIsGenerating(false);
-        
-        // Add to history if user is logged in
         if (user) {
           const newHistoryEntry: GenerationHistory = {
             id: uuidv4(),
             timestamp: new Date(),
-            stories: newStories,
+            stories: data.stories,
             settings: { ...settings }
           };
+          
+          if (user) {
+            try {
+              await supabase.from('history').insert({
+                user_id: user.id,
+                settings: settings,
+                stories: data.stories,
+                created_at: new Date().toISOString()
+              });
+            } catch (error) {
+              console.error('Error saving to history:', error);
+            }
+          }
           
           setHistory(prev => [newHistoryEntry, ...prev]);
         }
         
         toast.success("Stories generated", {
-          description: `${newStories.length} user stories created based on your designs.`
+          description: `${data.stories.length} user stories created based on your designs.`
         });
-      }, 1500);
+      } else {
+        throw new Error('No stories returned from the API');
+      }
       
+      setIsGenerating(false);
     } catch (error) {
       console.error('Error generating stories:', error);
       toast.error("Failed to generate stories", {
@@ -188,7 +194,6 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [files, settings, user]);
 
-  // Create share link function
   const createShareLink = useCallback(async () => {
     if (stories.length === 0) {
       toast.error("No stories to share");
@@ -196,9 +201,16 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      // In a real app, this would create an entry in a database
-      // For now, we'll mock it with a fake URL
       const shareId = uuidv4();
+      if (user) {
+        await supabase.from('shared_links').insert({
+          id: shareId,
+          user_id: user.id,
+          stories: stories,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        });
+      }
+      
       const shareUrl = `${window.location.origin}/share/${shareId}`;
       
       toast.success("Share link created", {
@@ -213,35 +225,34 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
       toast.error("Failed to create share link");
       return "";
     }
-  }, [stories]);
+  }, [stories, user]);
 
-  // Mock login function
   const login = useCallback(async (provider: 'google') => {
     try {
-      // Mock login
-      const mockUser: User = {
-        id: uuidv4(),
-        email: 'user@example.com',
-        name: 'Demo User',
-        avatar: null
-      };
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: provider,
+        options: {
+          redirectTo: `${window.location.origin}/results`
+        }
+      });
       
-      setUser(mockUser);
-      toast.success("Logged in successfully");
-      
-      // Mock fetch user's history
-      await getHistory();
+      if (error) throw error;
       
       return;
     } catch (error) {
       console.error('Login error:', error);
-      toast.error("Login failed");
+      toast.error("Login failed", {
+        description: error instanceof Error ? error.message : 'An unknown error occurred'
+      });
     }
   }, []);
 
-  // Mock logout function
   const logout = useCallback(async () => {
     try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) throw error;
+      
       setUser(null);
       toast.success("Logged out successfully");
       return;
@@ -251,30 +262,26 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // Mock get history function
   const getHistory = useCallback(async () => {
     if (!user) return;
     
     try {
-      // Mock history data
-      const mockHistory: GenerationHistory[] = [
-        {
-          id: uuidv4(),
-          timestamp: new Date(Date.now() - 86400000), // 1 day ago
-          stories: [{
-            id: uuidv4(),
-            title: "Previous User Story 1",
-            description: "This is a story from a previous generation.",
-            criteria: [
-              { id: uuidv4(), description: "Previous criterion 1" },
-              { id: uuidv4(), description: "Previous criterion 2" }
-            ]
-          }],
-          settings: { storyCount: 1, criteriaCount: 2 }
-        }
-      ];
+      const { data, error } = await supabase
+        .from('history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
       
-      setHistory(mockHistory);
+      if (error) throw error;
+      
+      const formattedHistory: GenerationHistory[] = data.map(item => ({
+        id: item.id,
+        timestamp: new Date(item.created_at),
+        stories: item.stories,
+        settings: item.settings
+      }));
+      
+      setHistory(formattedHistory);
     } catch (error) {
       console.error('Error fetching history:', error);
       toast.error("Failed to load history");

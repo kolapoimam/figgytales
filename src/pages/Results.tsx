@@ -16,17 +16,7 @@ const Results: React.FC = () => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   
-  // Redirect to home if no stories only on initial load
-  // Using a ref to track if this is the first render
-  const isInitialMount = React.useRef(true);
-  
-  useEffect(() => {
-    // Only redirect on initial mount if there are no stories
-    if (isInitialMount.current && stories.length === 0) {
-      navigate('/');
-    }
-    isInitialMount.current = false;
-  }, [stories, navigate]);
+  // We're removing the redirect to home to fix the issue with disappearing user story cards
   
   const copyAllToClipboard = () => {
     if (stories.length === 0) return;
@@ -86,7 +76,7 @@ const Results: React.FC = () => {
   };
   
   const startOver = () => {
-    // Preserve the user while clearing files
+    // Preserve the stories while clearing files
     clearFiles();
     navigate('/');
   };
@@ -110,6 +100,7 @@ const Results: React.FC = () => {
             <Button 
               variant="secondary" 
               onClick={copyAllToClipboard}
+              disabled={stories.length === 0}
             >
               {isCopied ? <Check size={16} className="mr-2" /> : <ClipboardCopy size={16} className="mr-2" />}
               {isCopied ? 'Copied' : 'Copy All'}
@@ -118,7 +109,7 @@ const Results: React.FC = () => {
             <Button
               variant="secondary"
               onClick={handleShareLink}
-              disabled={isSharing}
+              disabled={isSharing || stories.length === 0}
             >
               <Share2 size={16} className="mr-2" />
               Share
@@ -126,6 +117,7 @@ const Results: React.FC = () => {
             
             <Button 
               onClick={downloadAsCsv}
+              disabled={stories.length === 0}
             >
               <Download size={16} className="mr-2" />
               Download CSV
@@ -142,11 +134,23 @@ const Results: React.FC = () => {
         
         {user && <HistoryList className="mb-8" />}
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {stories.map((story, i) => (
-            <StoryCard key={story.id} story={story} index={i} />
-          ))}
-        </div>
+        {stories.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-muted-foreground">No stories generated yet. Upload design files and generate stories.</p>
+            <Button 
+              onClick={() => navigate('/')}
+              className="mt-4"
+            >
+              Go to Upload
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {stories.map((story, i) => (
+              <StoryCard key={story.id} story={story} index={i} />
+            ))}
+          </div>
+        )}
       </div>
     </main>
   );
