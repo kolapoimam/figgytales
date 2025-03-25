@@ -3,6 +3,7 @@ import React from 'react';
 import { useFiles } from '@/context/FileContext';
 import { Button } from '@/components/Button';
 import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
 import { Settings, Wand2 } from 'lucide-react';
 
 const SettingsPanel: React.FC = () => {
@@ -12,8 +13,22 @@ const SettingsPanel: React.FC = () => {
     updateSettings({ storyCount: value[0] });
   };
   
+  const handleStoryInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value >= 1 && value <= 15) {
+      updateSettings({ storyCount: value });
+    }
+  };
+  
   const handleCriteriaCountChange = (value: number[]) => {
     updateSettings({ criteriaCount: value[0] });
+  };
+  
+  const handleCriteriaInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value >= 1 && value <= 8) {
+      updateSettings({ criteriaCount: value });
+    }
   };
   
   return (
@@ -29,14 +44,22 @@ const SettingsPanel: React.FC = () => {
             <label htmlFor="storyCount" className="text-sm font-medium">
               Number of User Stories
             </label>
-            <span className="text-sm bg-secondary px-2 py-1 rounded-md font-medium">
-              {settings.storyCount}
-            </span>
+            <div className="flex items-center gap-2">
+              <Input
+                id="storyCountInput"
+                type="number"
+                min={1}
+                max={15}
+                value={settings.storyCount}
+                onChange={handleStoryInputChange}
+                className="w-16 h-8 text-center"
+              />
+            </div>
           </div>
           <Slider
             id="storyCount"
             min={1}
-            max={10}
+            max={15}
             step={1}
             value={[settings.storyCount]}
             onValueChange={handleStoryCountChange}
@@ -49,9 +72,17 @@ const SettingsPanel: React.FC = () => {
             <label htmlFor="criteriaCount" className="text-sm font-medium">
               Acceptance Criteria per Story
             </label>
-            <span className="text-sm bg-secondary px-2 py-1 rounded-md font-medium">
-              {settings.criteriaCount}
-            </span>
+            <div className="flex items-center gap-2">
+              <Input
+                id="criteriaCountInput"
+                type="number"
+                min={1}
+                max={8}
+                value={settings.criteriaCount}
+                onChange={handleCriteriaInputChange}
+                className="w-16 h-8 text-center"
+              />
+            </div>
           </div>
           <Slider
             id="criteriaCount"
@@ -66,7 +97,7 @@ const SettingsPanel: React.FC = () => {
         
         <div className="pt-4">
           <Button
-            onClick={generateStories}
+            onClick={() => generateStories()}
             disabled={files.length === 0 || isGenerating}
             isLoading={isGenerating}
             className="w-full"

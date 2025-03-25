@@ -5,13 +5,16 @@ import Header from '@/components/Header';
 import StoryCard from '@/components/StoryCard';
 import { Button } from '@/components/Button';
 import { useFiles } from '@/context/FileContext';
-import { ChevronLeft, ClipboardCopy, Download, Check } from 'lucide-react';
+import { ChevronLeft, ClipboardCopy, Download, Check, Share2 } from 'lucide-react';
 import { toast } from "sonner";
+import HistoryList from '@/components/HistoryList';
+import LoginButton from '@/components/LoginButton';
 
 const Results: React.FC = () => {
-  const { stories, clearFiles } = useFiles();
+  const { stories, clearFiles, createShareLink, user } = useFiles();
   const navigate = useNavigate();
   const [isCopied, setIsCopied] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   
   // Redirect to home if no stories
   React.useEffect(() => {
@@ -71,6 +74,12 @@ const Results: React.FC = () => {
     toast.success("CSV file downloaded");
   };
   
+  const handleShareLink = async () => {
+    setIsSharing(true);
+    await createShareLink();
+    setIsSharing(false);
+  };
+  
   const startOver = () => {
     clearFiles();
     navigate('/');
@@ -100,6 +109,15 @@ const Results: React.FC = () => {
               {isCopied ? 'Copied' : 'Copy All'}
             </Button>
             
+            <Button
+              variant="secondary"
+              onClick={handleShareLink}
+              disabled={isSharing}
+            >
+              <Share2 size={16} className="mr-2" />
+              Share
+            </Button>
+            
             <Button 
               onClick={downloadAsCsv}
             >
@@ -108,6 +126,15 @@ const Results: React.FC = () => {
             </Button>
           </div>
         </div>
+
+        {!user && (
+          <div className="bg-secondary/30 rounded-xl p-4 mb-6 flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Sign in to save your generated stories to your history</p>
+            <LoginButton />
+          </div>
+        )}
+        
+        {user && <HistoryList className="mb-8" />}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {stories.map((story, i) => (

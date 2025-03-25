@@ -1,9 +1,10 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useFiles } from '@/context/FileContext';
 import { Button } from '@/components/Button';
 import { Upload, FileSymlink } from 'lucide-react';
+import { toast } from 'sonner';
 
 const FileUploader: React.FC = () => {
   const { addFiles } = useFiles();
@@ -20,6 +21,22 @@ const FileUploader: React.FC = () => {
     maxSize: 10485760, // 10MB
     noClick: true, // Disable click to open file dialog
   });
+
+  // Add clipboard paste functionality
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (e.clipboardData && e.clipboardData.files.length > 0) {
+        const files = Array.from(e.clipboardData.files);
+        addFiles(files);
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, [addFiles]);
 
   return (
     <div 
@@ -44,7 +61,7 @@ const FileUploader: React.FC = () => {
             {isDragActive ? 'Drop your files here' : 'Upload design screens'}
           </h3>
           <p className="text-sm text-muted-foreground max-w-sm">
-            Drag and drop up to 5 design screens (PNG, JPG, SVG), or click the button below
+            Drag and drop up to 5 design screens, <span className="text-primary font-medium">paste from clipboard</span>, or click the button below
           </p>
         </div>
         
