@@ -81,6 +81,7 @@ const Results: React.FC = () => {
   };
   
   const startOver = () => {
+    // Preserve the user while clearing files
     clearFiles();
     navigate('/');
   };

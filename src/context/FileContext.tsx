@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
 import { DesignFile, StorySettings, UserStory, GenerationHistory, ShareLink, User, AIRequest, AIResponse } from '@/lib/types';
 import { toast } from "sonner";
@@ -86,6 +85,8 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
       URL.revokeObjectURL(file.preview);
     });
     setFiles([]);
+    // Clear stories but don't touch user state
+    setStories([]);
   }, [files]);
 
   // Function to generate stories using Gemini API
@@ -310,3 +311,4 @@ export const useFiles = () => {
   }
   return context;
 };
+
