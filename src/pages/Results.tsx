@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import StoryCard from '@/components/StoryCard';
@@ -16,11 +16,16 @@ const Results: React.FC = () => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   
-  // Redirect to home if no stories
-  React.useEffect(() => {
-    if (stories.length === 0) {
+  // Redirect to home if no stories only on initial load
+  // Using a ref to track if this is the first render
+  const isInitialMount = React.useRef(true);
+  
+  useEffect(() => {
+    // Only redirect on initial mount if there are no stories
+    if (isInitialMount.current && stories.length === 0) {
       navigate('/');
     }
+    isInitialMount.current = false;
   }, [stories, navigate]);
   
   const copyAllToClipboard = () => {
