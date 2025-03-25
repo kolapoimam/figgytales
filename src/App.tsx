@@ -1,4 +1,5 @@
 
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,32 +12,35 @@ import Results from "./pages/Results";
 import NotFound from "./pages/NotFound";
 import ShareView from "./pages/ShareView";
 
+// Create a client
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <ThemeProvider>
-        <FileProvider>
-          <Toaster />
-          <Sonner 
-            position="top-center"
-            closeButton
-            theme="light"
-            richColors
-          />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/results" element={<Results />} />
-              <Route path="/share/:id" element={<ShareView />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </FileProvider>
-      </ThemeProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App: React.FC = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <ThemeProvider>
+          <FileProvider>
+            <Toaster />
+            <Sonner 
+              position="top-center"
+              closeButton
+              theme="light"
+              richColors
+            />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/results" element={<Results />} />
+                <Route path="/share/:id" element={<ShareView />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </FileProvider>
+        </ThemeProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
