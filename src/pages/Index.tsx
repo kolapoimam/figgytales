@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import FileUploader from '@/components/FileUploader';
@@ -11,25 +11,28 @@ import { toast } from 'sonner';
 
 const Index: React.FC = () => {
   const { 
-    files, 
+    files,
     stories, 
-    clearFiles, 
-    generateStories, 
-    isGenerating 
+    clearFiles,
+    generateStories,
+    isGenerating,
+    settings // Make sure this is available in your context
   } = useFiles();
   const navigate = useNavigate();
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // Initialize and clear state
+  
+  // Clear state on mount but preserve settings
   useEffect(() => {
-    clearFiles();
-    setIsInitialized(true);
-    return () => {
-      // Cleanup if needed
+    const resetFiles = () => {
+      clearFiles();
+      // Keep stories in localStorage for potential recovery
+      if (stories.length > 0) {
+        localStorage.setItem('figgytales_stories', JSON.stringify(stories));
+      }
     };
-  }, [clearFiles]);
+    resetFiles();
+  }, [clearFiles, stories]);
 
-  // Navigate to results when stories are generated
+  // Navigate to results when stories exist
   useEffect(() => {
     if (stories.length > 0) {
       navigate('/results', { replace: true });
@@ -38,59 +41,55 @@ const Index: React.FC = () => {
 
   const handleGenerate = async () => {
     if (files.length === 0) {
-      toast.warning('Please upload files first');
+      toast.warning('Please upload design files first');
       return;
     }
 
     try {
       await generateStories();
-      toast.success('Stories generated successfully!');
     } catch (error) {
       toast.error('Failed to generate stories');
       console.error('Generation error:', error);
     }
   };
 
-  if (!isInitialized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <main className="min-h-screen flex flex-col">
       <Header />
       
       <div className="flex-1 max-w-5xl w-full mx-auto px-4 md:px-6 pb-20">
-        <div className="space-y-8">
-          <FileUploader />
-          
-          {/* Only show preview if files exist */}
-          {files.length > 0 && (
-            <>
-              <PreviewGrid files={files} />
-              <SettingsPanel />
-              
-              <div className="flex justify-center pt-4">
+        <div className="stagger-children">
+          <div className="animate-slide-down space-y-8">
+            {/* File Upload Section */}
+            <FileUploader />
+            
+            {/* Preview Grid - Only shown when files exist */}
+            {files.length > 0 && <PreviewGrid />}
+            
+            {/* Settings Panel - Always visible */}
+            <SettingsPanel />
+            
+            {/* Generate Button - Only shown when files exist */}
+            {files.length > 0 && (
+              <div className="flex justify-center pt-6">
                 <Button
                   onClick={handleGenerate}
                   disabled={isGenerating}
                   size="lg"
+                  className="w-full sm:w-auto"
                 >
                   {isGenerating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
+                      Generating Stories...
                     </>
                   ) : (
-                    'Generate Stories'
+                    'Generate User Stories'
                   )}
                 </Button>
               </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </main>
