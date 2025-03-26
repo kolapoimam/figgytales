@@ -14,9 +14,8 @@ const Results: React.FC = () => {
   const navigate = useNavigate();
   const [isCopied, setIsCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
-  const [displayStories, setDisplayStories] = useState(stories);
   
-  // Load stories from localStorage if the context stories are empty
+  // Ensure we display stored stories from localStorage if stories array is empty
   useEffect(() => {
     if (stories.length === 0) {
       const savedStories = localStorage.getItem('figgytales_stories');
@@ -24,38 +23,35 @@ const Results: React.FC = () => {
         try {
           const parsedStories = JSON.parse(savedStories);
           if (Array.isArray(parsedStories) && parsedStories.length > 0) {
-            setDisplayStories(parsedStories);
-            // Optionally update the context as well
+            // Update stories in context if localStorage has stories
             setStories(parsedStories);
+            console.log("Loading stories from localStorage");
           }
         } catch (e) {
           console.error("Error parsing saved stories:", e);
         }
       }
-    } else {
-      // If we have stories in context, use them
-      setDisplayStories(stories);
     }
   }, [stories, setStories]);
   
-  // Save stories to localStorage whenever they change
+  // Save stories to localStorage whenever stories change
   useEffect(() => {
-    if (displayStories.length > 0) {
-      localStorage.setItem('figgytales_stories', JSON.stringify(displayStories));
+    if (stories.length > 0) {
+      localStorage.setItem('figgytales_stories', JSON.stringify(stories));
     }
-  }, [displayStories]);
+  }, [stories]);
   
   const copyAllToClipboard = () => {
-    if (displayStories.length === 0) return;
+    if (stories.length === 0) return;
     
     let textToCopy = '';
     
-    displayStories.forEach((story, i) => {
+    stories.forEach((story, i) => {
       textToCopy += `${story.title}\n${story.description}\n\nAcceptance Criteria:\n${
         story.criteria.map((c, j) => `${j + 1}. ${c.description}`).join('\n')
       }`;
       
-      if (i < displayStories.length - 1) {
+      if (i < stories.length - 1) {
         textToCopy += '\n\n' + '-'.repeat(40) + '\n\n';
       }
     });
@@ -73,11 +69,11 @@ const Results: React.FC = () => {
   };
   
   const downloadAsCsv = () => {
-    if (displayStories.length === 0) return;
+    if (stories.length === 0) return;
     
     let csvContent = "Title,Description,Acceptance Criteria\n";
     
-    displayStories.forEach(story => {
+    stories.forEach(story => {
       const criteriaText = story.criteria.map(c => c.description.replace(/"/g, '""')).join(' | ');
       csvContent += `"${story.title}","${story.description.replace(/"/g, '""')}","${criteriaText}"\n`;
     });
@@ -103,6 +99,7 @@ const Results: React.FC = () => {
   };
   
   const startOver = () => {
+    // Just clear the files but keep the stories
     clearFiles();
     navigate('/');
   };
@@ -126,7 +123,7 @@ const Results: React.FC = () => {
             <Button 
               variant="secondary" 
               onClick={copyAllToClipboard}
-              disabled={displayStories.length === 0}
+              disabled={stories.length === 0}
             >
               {isCopied ? <Check size={16} className="mr-2" /> : <ClipboardCopy size={16} className="mr-2" />}
               {isCopied ? 'Copied' : 'Copy All'}
@@ -135,7 +132,7 @@ const Results: React.FC = () => {
             <Button
               variant="secondary"
               onClick={handleShareLink}
-              disabled={isSharing || displayStories.length === 0}
+              disabled={isSharing || stories.length === 0}
             >
               <Share2 size={16} className="mr-2" />
               Share
@@ -143,7 +140,7 @@ const Results: React.FC = () => {
             
             <Button 
               onClick={downloadAsCsv}
-              disabled={displayStories.length === 0}
+              disabled={stories.length === 0}
             >
               <Download size={16} className="mr-2" />
               Download CSV
@@ -160,7 +157,7 @@ const Results: React.FC = () => {
         
         {user && <HistoryList className="mb-8" />}
         
-        {displayStories.length === 0 ? (
+        {stories.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-muted-foreground">No stories generated yet. Upload design files and generate stories.</p>
             <Button 
@@ -172,7 +169,7 @@ const Results: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {displayStories.map((story, i) => (
+            {stories.map((story, i) => (
               <StoryCard key={story.id} story={story} index={i} />
             ))}
           </div>
