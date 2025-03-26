@@ -20,8 +20,6 @@ export const useStoryManager = (
   useEffect(() => {
     if (stories.length > 0) {
       localStorage.setItem('figgytales_stories', JSON.stringify(stories));
-    } else {
-      localStorage.removeItem('figgytales_stories');
     }
   }, [stories]);
 
@@ -34,93 +32,55 @@ export const useStoryManager = (
     }
     
     setIsGenerating(true);
-    let allValidStories: UserStory[] = [];
-    const maxAttempts = 3;
-    let attempts = 0;
-
     try {
-      while (allValidStories.length < settings.storyCount && attempts < maxAttempts) {
-        const remainingStories = settings.storyCount - allValidStories.length;
-        const imagePromises = files.map(file => {
-          return new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              resolve(reader.result as string);
-            };
-            reader.readAsDataURL(file.file);
-          });
+      const imagePromises = files.map(file => {
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve(reader.result as string);
+          };
+          reader.readAsDataURL(file.file);
         });
-        
-        const imageBase64s = await Promise.all(imagePromises);
-        
-        const aiRequest: AIRequest = {
-          prompt: `Generate exactly ${remainingStories} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story must strictly follow the format 'As a [user type], I want to [action], so that [benefit]'. Ensure each story has a title starting with 'As a', a description, and exactly ${settings.criteriaCount} clear and testable acceptance criteria. Do not include any summaries, introductions, placeholder text such as 'Here are X user stories', or any other content that is not a user story. Return only the ${remainingStories} user stories in the specified format.`,
-          images: imageBase64s,
-          storyCount: remainingStories,
-          criteriaCount: settings.criteriaCount,
-          userType: settings.userType
-        };
-        
-        if (settings.audienceType) {
-          aiRequest.audienceType = settings.audienceType;
-        }
-        
-        const generatedStories = await generateUserStories(aiRequest);
-
-        console.log(`Attempt ${attempts + 1} - Raw AI response:`, generatedStories);
-
-        const validStories = generatedStories.filter(story => {
-          const isValid = (
-            story.title?.startsWith('As a') && // Must start with "As a"
-            story.description && // Must have a description
-            Array.isArray(story.criteria) && story.criteria.length === settings.criteriaCount && // Must have the correct number of criteria
-            !story.title?.includes('Here are') && // Must not be a summary like "Here are X user stories"
-            !story.title?.toLowerCase().includes('summary') && // Must not be a summary (e.g., "Summary of AI integration")
-            story.description.toLowerCase().includes('i want to') && // Must follow user story format
-            story.description.toLowerCase().includes('so that') // Must follow user story format
-          );
-          if (!isValid) {
-            console.log(`Attempt ${attempts + 1} - Filtered out invalid story:`, story);
-          }
-          return isValid;
-        });
-
-        allValidStories = [...allValidStories, ...validStories];
-        attempts++;
-
-        console.log(`Attempt ${attempts} - Valid stories so far: ${allValidStories.length}/${settings.storyCount}`);
+      });
+      
+      const imageBase64s = await Promise.all(imagePromises);
+      
+      const aiRequest: AIRequest = {
+        prompt: `Generate ${settings.storyCount} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story should follow the format 'As a [user type], I want to [action], so that [benefit]'. Make sure acceptance criteria are clear and testable.`,
+        images: imageBase64s,
+        storyCount: settings.storyCount,
+        criteriaCount: settings.criteriaCount,
+        userType: settings.userType
+      };
+      
+      if (settings.audienceType) {
+        aiRequest.audienceType = settings.audienceType;
       }
-
-      if (allValidStories.length < settings.storyCount) {
-        toast.warning(`Expected ${settings.storyCount} user stories, but only ${allValidStories.length} valid stories were generated after ${maxAttempts} attempts.`, {
-          description: "Displaying the available stories. You can try generating more."
-        });
-      } else {
-        toast.success("Stories generated", {
-          description: `${allValidStories.length} user stories created based on your designs.`
-        });
-      }
-
-      allValidStories = allValidStories.slice(0, settings.storyCount);
-      setStories(allValidStories);
+      
+      const generatedStories = await generateUserStories(aiRequest);
+      setStories(generatedStories);
       
       if (userId) {
-        await saveGenerationHistory(userId, allValidStories, settings);
+        await saveGenerationHistory(userId, generatedStories, settings);
         
         const newHistoryEntry: GenerationHistory = {
           id: uuidv4(),
           timestamp: new Date(),
-          stories: allValidStories,
+          stories: generatedStories,
           settings: { ...settings }
         };
         
         setHistory(prev => [newHistoryEntry, ...prev]);
       }
       
+      toast.success("Stories generated", {
+        description: `${generatedStories.length} user stories created based on your designs.`
+      });
+      
     } catch (error) {
       console.error('Error generating stories:', error);
       toast.error("Failed to generate stories", {
-        description: error.message || "There was an error processing your design files. Please try again later."
+        description: "There was an error processing your design files. Please try again later."
       });
     } finally {
       setIsGenerating(false);
@@ -140,8 +100,8 @@ export const useStoryManager = (
         const shareId = await createStoryShareLink(userId, stories);
         shareUrl = `${window.location.origin}/share/${shareId}`;
       } else {
-        toast.error("Please sign in to share stories");
-        return "";
+        const tempShareId = uuidv4();
+        shareUrl = `${window.location.origin}/share/${tempShareId}`;
       }
       
       toast.success("Share link created", {
