@@ -6,8 +6,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { generateUserStories, saveGenerationHistory, createStoryShareLink, fetchUserHistory } from '@/services/fileService';
 
 export const useStoryManager = (
-  files: any[], 
-  settings: StorySettings, 
+  files: any[],
+  settings: StorySettings,
   userId: string | null,
   setIsGenerating: (value: boolean) => void
 ) => {
@@ -15,7 +15,6 @@ export const useStoryManager = (
     const savedStories = localStorage.getItem('figgytales_stories');
     return savedStories ? JSON.parse(savedStories) : [];
   });
-  
   const [history, setHistory] = useState<GenerationHistory[]>([]);
 
   useEffect(() => {
@@ -28,75 +27,91 @@ export const useStoryManager = (
 
   const generateStories = useCallback(async () => {
     if (files.length === 0) {
-      toast.error("No design files", {
-        description: "Please upload at least one design file before generating stories."
-      });
+      toast.error("No design files", { description: "Please upload at least one design file." });
       return;
     }
-    
+
     setIsGenerating(true);
     let allValidStories: UserStory[] = [];
-    const maxAttempts = 5; // Increased attempts to ensure we get the required stories
+    const maxAttempts = 5;
     let attempts = 0;
 
     try {
       while (allValidStories.length < settings.storyCount && attempts < maxAttempts) {
         const remainingStories = settings.storyCount - allValidStories.length;
         const imagePromises = files.map(file => {
-          return new Promise<string>((resolve) => {
+          return new Promise<string>(resolve => {
             const reader = new FileReader();
-            reader.onloadend = () => {
-              resolve(reader.result as string);
-            };
+            reader.onloadend = () => resolve(reader.result as string);
             reader.readAsDataURL(file.file);
           });
         });
-        
         const imageBase64s = await Promise.all(imagePromises);
-        
-        // Refined prompt to ensure exact output without summaries
+
         const aiRequest: AIRequest = {
-          prompt: `Generate exactly ${remainingStories} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story must strictly follow the format 'As a [user type], I want to [action], so that [benefit]' in both the title and description. The title must start with 'As a'. Each story must have a description and exactly ${settings.criteriaCount} clear, testable acceptance criteria. Do not include any summaries, introductions, placeholder text such as 'Here are X user stories', or any other content that is not a user story. Return only the user stories in the specified format, one per block, with the title, description, and numbered acceptance criteria (e.g., "1. Criterion"). Ensure each story has exactly ${settings.criteriaCount} acceptance criteria.`,
+          prompt: `Based on the provided design screens, generate exactly ${remainingStories} user stories. Each user story must be in the following format:
+
+Title: As a [user type], I want to [action], so that [benefit]
+Description: [Provide a brief description of the user story]
+Acceptance Criteria:
+1. [First acceptance criterion]
+2. [Second acceptance criterion]
+...
+${settings.criteriaCount}. [Last acceptance criterion]
+
+Ensure that:
+- Each story has exactly ${settings.criteriaCount} acceptance criteria.
+- The title starts with 'As a'.
+- There is a description for each story.
+- Do not include any text before or after the user stories, such as summaries or introductions.
+- Only provide the user stories themselves.
+
+For example, if generating 2 stories with 3 acceptance criteria each:
+Title: As a user, I want to log in, so that I can access my account
+Description: The login feature allows users to access their personal dashboard.
+Acceptance Criteria:
+1. The login form should have fields for username and password.
+2. There should be a 'Forgot Password' link.
+3. Successful login should redirect to the dashboard.
+
+Title: As a user, I want to reset my password, so that I can regain access if I forget it
+Description: Password reset functionality for account recovery.
+Acceptance Criteria:
+1. User should receive a reset link via email.
+2. The reset link should expire after 24 hours.
+3. User should be able to set a new password.
+
+Provide exactly ${remainingStories} such stories based on the design screens.`,
           images: imageBase64s,
           storyCount: remainingStories,
           criteriaCount: settings.criteriaCount,
-          userType: settings.userType
+          userType: settings.userType,
+          ...(settings.audienceType && { audienceType: settings.audienceType }),
         };
-        
-        if (settings.audienceType) {
-          aiRequest.audienceType = settings.audienceType;
-        }
-        
-        const generatedStories = await generateUserStories(aiRequest);
 
+        const generatedStories = await generateUserStories(aiRequest);
         console.log(`Attempt ${attempts + 1} - Raw AI response:`, generatedStories);
 
-        // Validate stories with relaxed criteria
         const validStories = generatedStories.filter(story => {
           const isValid = (
             story.title?.startsWith('As a') &&
             story.description &&
-            Array.isArray(story.criteria) &&
-            story.criteria.length === settings.criteriaCount &&
+            Array.isArray(story.criteria) && story.criteria.length === settings.criteriaCount &&
             !story.title?.includes('Here are') &&
             !story.description?.includes('Here are')
           );
-          if (!isValid) {
-            console.log(`Attempt ${attempts + 1} - Filtered out invalid story:`, story);
-          }
+          if (!isValid) console.log(`Attempt ${attempts + 1} - Filtered out:`, story);
           return isValid;
         });
 
         allValidStories = [...allValidStories, ...validStories];
         attempts++;
-
-        console.log(`Attempt ${attempts} - Valid stories so far: ${allValidStories.length}/${settings.storyCount}`);
+        console.log(`Attempt ${attempts} - Valid stories: ${allValidStories.length}/${settings.storyCount}`);
       }
 
       if (allValidStories.length < settings.storyCount) {
-        // If we don't have enough stories after max attempts, inform the user to retry
-        toast.warning(`Expected ${settings.storyCount} user stories, but only ${allValidStories.length} valid stories were generated after ${maxAttempts} attempts.`, {
-          description: "Please try generating again or adjust your settings."
+        toast.warning(`Expected ${settings.storyCount} stories, but got ${allValidStories.length} after ${maxAttempts} attempts.`, {
+          description: "Please try again or adjust your settings."
         });
       } else {
         toast.success("Stories generated", {
@@ -106,25 +121,20 @@ export const useStoryManager = (
 
       allValidStories = allValidStories.slice(0, settings.storyCount);
       setStories(allValidStories);
-      
+
       if (userId) {
         await saveGenerationHistory(userId, allValidStories, settings);
-        
         const newHistoryEntry: GenerationHistory = {
           id: uuidv4(),
           timestamp: new Date(),
           stories: allValidStories,
-          settings: { ...settings }
+          settings: { ...settings },
         };
-        
         setHistory(prev => [newHistoryEntry, ...prev]);
       }
-      
     } catch (error) {
       console.error('Error generating stories:', error);
-      toast.error("Failed to generate stories", {
-        description: "There was an error processing your design files. Please try again later."
-      });
+      toast.error("Failed to generate stories", { description: "Error processing design files. Try again later." });
     } finally {
       setIsGenerating(false);
     }
@@ -135,24 +145,15 @@ export const useStoryManager = (
       toast.error("No stories to share");
       return "";
     }
-
     try {
-      let shareUrl = '';
-      
-      if (userId) {
-        const shareId = await createStoryShareLink(userId, stories);
-        shareUrl = `${window.location.origin}/share/${shareId}`;
-      } else {
+      if (!userId) {
         toast.error("Please sign in to share stories");
         return "";
       }
-      
-      toast.success("Share link created", {
-        description: "Link copied to clipboard!"
-      });
-      
+      const shareId = await createStoryShareLink(userId, stories);
+      const shareUrl = `${window.location.origin}/share/${shareId}`;
+      toast.success("Share link created", { description: "Link copied to clipboard!" });
       navigator.clipboard.writeText(shareUrl);
-      
       return shareUrl;
     } catch (error) {
       console.error('Error creating share link:', error);
@@ -163,18 +164,15 @@ export const useStoryManager = (
 
   const getHistory = useCallback(async () => {
     if (!userId) return;
-    
     try {
       const data = await fetchUserHistory(userId);
-      
       if (data) {
         const formattedHistory: GenerationHistory[] = data.map(item => ({
           id: item.id,
           timestamp: new Date(item.created_at),
           stories: item.stories as unknown as UserStory[],
-          settings: item.settings as unknown as StorySettings
+          settings: item.settings as unknown as StorySettings,
         }));
-        
         setHistory(formattedHistory);
       }
     } catch (error) {
@@ -196,6 +194,6 @@ export const useStoryManager = (
     getHistory,
     setStories,
     setHistory,
-    clearStoredStories
+    clearStoredStories,
   };
 };
