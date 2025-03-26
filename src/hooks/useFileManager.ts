@@ -5,8 +5,8 @@ import { toast } from "sonner";
 export const useFileManager = () => {
   const [files, setFiles] = useState<DesignFile[]>([]);
   const [settings, setSettings] = useState<StorySettings>({
-    storyCount: 4, // Updated to 4 to match user expectation
-    criteriaCount: 4, // Updated to 4 to match screenshot
+    storyCount: 4,
+    criteriaCount: 4,
     userType: "User"
   });
   const [isGenerating, setIsGenerating] = useState(false);
@@ -49,7 +49,24 @@ export const useFileManager = () => {
   }, []);
 
   const updateSettings = useCallback((newSettings: Partial<StorySettings>) => {
-    setSettings(prev => ({ ...prev, ...newSettings }));
+    setSettings(prev => {
+      const updatedSettings = { ...prev, ...newSettings };
+      // Validate storyCount
+      if (updatedSettings.storyCount < 1 || updatedSettings.storyCount > 15) {
+        toast.error("Invalid number of stories", {
+          description: "Please specify between 1 and 15 user stories."
+        });
+        updatedSettings.storyCount = Math.max(1, Math.min(15, updatedSettings.storyCount));
+      }
+      // Validate criteriaCount
+      if (updatedSettings.criteriaCount < 1 || updatedSettings.criteriaCount > 8) {
+        toast.error("Invalid number of criteria", {
+          description: "Please specify between 1 and 8 acceptance criteria per story."
+        });
+        updatedSettings.criteriaCount = Math.max(1, Math.min(8, updatedSettings.criteriaCount));
+      }
+      return updatedSettings;
+    });
   }, []);
 
   const clearFiles = useCallback(() => {
