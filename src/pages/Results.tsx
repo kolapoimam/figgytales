@@ -132,9 +132,19 @@ const Results: React.FC = () => {
     setIsSharing(false);
   };
   
-  const startOver = () => {
-    clearFiles();
-    navigate('/');
+// In your Results component
+const startOver = () => {
+  clearFiles();
+  navigate('/', { replace: true }); // Add replace option to prevent back navigation issues
+};
+
+// In your "Go to Upload" button
+<Button 
+  onClick={() => navigate('/', { replace: true })}
+  className="mt-4"
+>
+  Go to Upload
+</Button>
   };
   
   return (
