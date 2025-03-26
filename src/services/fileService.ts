@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { AIRequest, UserStory, StorySettings, Json } from '@/lib/types';
+import { AIRequest, UserStory, StorySettings } from '@/lib/types';
 import { toast } from "sonner";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -14,6 +14,7 @@ export const generateUserStories = async (request: AIRequest): Promise<UserStory
     });
     
     if (error) {
+      console.error('Error from Supabase function:', error);
       throw error;
     }
     

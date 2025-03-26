@@ -15,7 +15,12 @@ export const useStoryManager = (
   const [history, setHistory] = useState<GenerationHistory[]>([]);
 
   const generateStories = useCallback(async () => {
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      toast.error("No design files", {
+        description: "Please upload at least one design file before generating stories."
+      });
+      return;
+    }
     
     setIsGenerating(true);
     try {
@@ -32,7 +37,7 @@ export const useStoryManager = (
       const imageBase64s = await Promise.all(imagePromises);
       
       const aiRequest: AIRequest = {
-        prompt: `Generate ${settings.storyCount} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens.`,
+        prompt: `Generate ${settings.storyCount} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story should follow the format 'As a [user type], I want to [action], so that [benefit]'. Make sure acceptance criteria are clear and testable.`,
         images: imageBase64s,
         storyCount: settings.storyCount,
         criteriaCount: settings.criteriaCount
@@ -60,6 +65,9 @@ export const useStoryManager = (
       
     } catch (error) {
       console.error('Error generating stories:', error);
+      toast.error("Failed to generate stories", {
+        description: "There was an error processing your design files. Please try again later."
+      });
     } finally {
       setIsGenerating(false);
     }

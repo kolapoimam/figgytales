@@ -8,6 +8,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Google Generative AI API key from environment - set directly in the code for this assignment
+const GOOGLE_AI_API_KEY = 'AIzaSyCcKtpIVaG0weD7ZIawyLFZMl8kojOM28Q';
+
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -15,13 +18,6 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Get the GOOGLE_AI_API_KEY from environment variable
-    const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY');
-    
-    if (!GOOGLE_AI_API_KEY) {
-      throw new Error('GOOGLE_AI_API_KEY is not set in environment variables');
-    }
-
     // Parse the request body
     const requestData: AIRequest = await req.json();
     
@@ -110,7 +106,6 @@ serve(async (req: Request) => {
 
 function parseAIResponseToStories(text: string, expectedStoryCount: number, expectedCriteriaCount: number): UserStory[] {
   // Split the text by common user story delimiters
-  // This is a simplified parsing logic that would need to be adjusted based on actual AI output format
   const storyBlocks = text.split(/(?:User Story|Story) #?\d+:?\s*/).filter(Boolean);
   const stories: UserStory[] = [];
 
@@ -118,7 +113,7 @@ function parseAIResponseToStories(text: string, expectedStoryCount: number, expe
   for (let i = 0; i < Math.min(storyBlocks.length, expectedStoryCount); i++) {
     const block = storyBlocks[i].trim();
     
-    // Extract title, description and criteria
+    // Extract title
     const titleMatch = block.match(/(?:Title|As a|I want|So that).*?\n/i);
     const title = titleMatch ? titleMatch[0].trim() : `User Story ${i + 1}`;
     
