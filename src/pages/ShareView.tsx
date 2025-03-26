@@ -104,12 +104,18 @@ const ShareView: React.FC = () => {
       
       <div className="flex-1 max-w-5xl w-full mx-auto px-4 md:px-6 pb-20">
         <div className="flex justify-between items-center mb-8">
-          <Link to="/">
-            <Button variant="outline" className="group">
-              <Home size={16} className="mr-2" />
-              Go Home
-            </Button>
-          </Link>
+// In your ShareView component
+<Link to="/" replace>  {/* Add replace prop */}
+  <Button variant="outline" className="group">
+    <Home size={16} className="mr-2" />
+    Go Home
+  </Button>
+</Link>
+
+// And for the Go Home button
+<Button onClick={() => navigate('/', { replace: true })} className="mt-4">
+  Go Home
+</Button>
           
           {stories.length > 0 && (
             <Button 
