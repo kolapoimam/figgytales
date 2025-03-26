@@ -30,12 +30,19 @@ const Results: React.FC = () => {
   const [isSharing, setIsSharing] = useState(false);
   const [localStories, setLocalStories] = useState<Story[]>([]);
 
-  // Initialize stories
+  // Initialize and filter stories
   useEffect(() => {
     const initializeStories = () => {
       if (stories && stories.length > 0) {
-        setLocalStories(stories);
-        localStorage.setItem('figgytales_stories', JSON.stringify(stories));
+        // Filter out non-user-story items
+        const filteredStories = stories.filter(story => {
+          const isProperStory = story.title?.startsWith('As a') && story.description && story.criteria?.length > 0;
+          const isNotSummary = !story.title?.includes('Here are');
+          return isProperStory && isNotSummary;
+        });
+
+        setLocalStories(filteredStories);
+        localStorage.setItem('figgytales_stories', JSON.stringify(filteredStories));
         return;
       }
 
@@ -44,8 +51,13 @@ const Results: React.FC = () => {
         try {
           const savedStories = JSON.parse(savedStoriesJson);
           if (Array.isArray(savedStories) && savedStories.length > 0) {
-            setLocalStories(savedStories);
-            setStories(savedStories);
+            const filteredSavedStories = savedStories.filter(story => {
+              const isProperStory = story.title?.startsWith('As a') && story.description && story.criteria?.length > 0;
+              const isNotSummary = !story.title?.includes('Here are');
+              return isProperStory && isNotSummary;
+            });
+            setLocalStories(filteredSavedStories);
+            setStories(filteredSavedStories);
             return;
           }
         } catch (error) {
@@ -131,7 +143,7 @@ const Results: React.FC = () => {
   };
 
   const generateMore = () => {
-    navigate('/'); // Simply navigate to Index page without clearing
+    navigate('/');
   };
 
   return (
@@ -205,7 +217,6 @@ const Results: React.FC = () => {
           </div>
         )}
 
-        {/* Generate More Button */}
         {localStories.length > 0 && (
           <div className="mt-8 flex justify-center">
             <Button 
