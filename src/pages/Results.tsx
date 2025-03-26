@@ -91,16 +91,17 @@ const Results: React.FC = () => {
   
   const startOver = () => {
     clearFiles();
-    navigate('/'); // Already navigates to home page
+    // Explicitly navigate to root path
+    navigate('/', { replace: true });
   };
 
   const generateMoreStories = () => {
-    navigate('/'); // Navigates to home page
+    // Explicitly navigate to root path
+    navigate('/', { replace: true });
   };
 
-  // Assuming Header component accepts an onTitleClick prop
   const handleTitleClick = () => {
-    navigate('/'); // Navigates to home page when title is clicked
+    navigate('/', { replace: true });
   };
   
   return (
@@ -160,7 +161,7 @@ const Results: React.FC = () => {
           <div className="text-center py-20">
             <p className="text-muted-foreground">No stories generated yet. Upload design files and generate stories.</p>
             <Button 
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/', { replace: true })}
               className="mt-4"
             >
               Go to Upload
