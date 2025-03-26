@@ -1,66 +1,160 @@
-// pages/ShareView.tsx
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { fetchSharedStories } from '@/services/fileService';
-import StoryCard from '@/components/StoryCard';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
+import StoryCard from '@/components/StoryCard';
+import { Button } from '@/components/Button';
+import { Home, ClipboardCopy, Check } from 'lucide-react';
 import { toast } from "sonner";
-
-interface Story {
-  id: string;
-  title: string;
-  description: string;
-  criteria: { description: string }[];
-}
+import { UserStory } from '@/lib/types';
+import { supabase } from '@/integrations/supabase/client';
 
 const ShareView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [stories, setStories] = useState<Story[]>([]);
-  const [loading, setLoading] = useState(true);
-
+  const navigate = useNavigate();
+  const [stories, setStories] = useState<UserStory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCopied, setIsCopied] = useState(false);
+  
   useEffect(() => {
-    const loadSharedStories = async () => {
+    const fetchSharedStories = async () => {
       if (!id) {
         toast.error("Invalid share link");
-        setLoading(false);
+        navigate('/');
         return;
       }
-
+      
       try {
-        const sharedStories = await fetchSharedStories(id);
-        setStories(sharedStories);
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('shared_links')
+          .select('stories, expires_at')
+          .eq('id', id)
+          .single();
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (!data) {
+          toast.error("Shared link not found");
+          navigate('/');
+          return;
+        }
+
+        // Check if link has expired
+        if (data.expires_at && new Date(data.expires_at) < new Date()) {
+          toast.error("This share link has expired");
+          navigate('/');
+          return;
+        }
+
+        if (data.stories) {
+          // Validate the stories data structure
+          if (Array.isArray(data.stories)) {
+            setStories(data.stories);
+          } else {
+            console.error('Invalid stories data format:', data.stories);
+            toast.error("Invalid stories data format");
+          }
+        } else {
+          toast.error("No stories found in this share");
+        }
       } catch (error) {
-        console.error('Error loading shared stories:', error);
-        toast.error("Failed to load shared stories", {
-          description: "The share link may be invalid or the stories may have been deleted."
-        });
+        console.error('Error fetching shared stories:', error);
+        toast.error("Failed to load shared stories");
+        navigate('/');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
-
-    loadSharedStories();
-  }, [id]);
-
+    
+    fetchSharedStories();
+  }, [id, navigate]);
+  
+  const copyAllToClipboard = () => {
+    if (stories.length === 0) return;
+    
+    let textToCopy = '';
+    
+    stories.forEach((story, i) => {
+      textToCopy += `${story.title}\n${story.description}\n\nAcceptance Criteria:\n${
+        story.criteria?.map((c, j) => `${j + 1}. ${c.description}`).join('\n') || 'No criteria'
+      }`;
+      
+      if (i < stories.length - 1) {
+        textToCopy += '\n\n' + '-'.repeat(40) + '\n\n';
+      }
+    });
+    
+    navigator.clipboard.writeText(textToCopy)
+      .then(() => {
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+        toast.success("All stories copied to clipboard");
+      })
+      .catch(err => {
+        console.error('Failed to copy: ', err);
+        toast.error("Failed to copy to clipboard");
+      });
+  };
+  
   return (
     <main className="min-h-screen flex flex-col">
       <Header />
+      
       <div className="flex-1 max-w-5xl w-full mx-auto px-4 md:px-6 pb-20">
-        <h1 className="text-2xl font-bold mb-6">Shared Stories</h1>
-        {loading ? (
-          <div className="text-center py-20">
-            <p className="text-muted-foreground">Loading shared stories...</p>
-          </div>
-        ) : stories.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-muted-foreground">No stories found for this share link.</p>
+        <div className="flex justify-between items-center mb-8">
+// In your ShareView component
+<Link to="/" replace>  {/* Add replace prop */}
+  <Button variant="outline" className="group">
+    <Home size={16} className="mr-2" />
+    Go Home
+  </Button>
+</Link>
+
+// And for the Go Home button
+<Button onClick={() => navigate('/', { replace: true })} className="mt-4">
+  Go Home
+</Button>
+          
+          {stories.length > 0 && (
+            <Button 
+              variant="secondary" 
+              onClick={copyAllToClipboard}
+              disabled={stories.length === 0}
+            >
+              {isCopied ? <Check size={16} className="mr-2" /> : <ClipboardCopy size={16} className="mr-2" />}
+              {isCopied ? 'Copied' : 'Copy All'}
+            </Button>
+          )}
+        </div>
+        
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <p className="mt-4 text-muted-foreground">Loading shared stories...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {stories.map((story, i) => (
-              <StoryCard key={story.id} story={story} index={i} />
-            ))}
-          </div>
+          <>
+            {stories.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No stories found in this share.</p>
+                <Button onClick={() => navigate('/')} className="mt-4">
+                  Go Home
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {stories.map((story, i) => (
+                  <StoryCard 
+                    key={`${story.id}-${i}`} 
+                    story={story} 
+                    index={i} 
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </main>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { DesignFile, StorySettings, UserStory, GenerationHistory, User } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useFileManager } from '@/hooks/useFileManager';
@@ -21,7 +21,7 @@ interface FileContextType {
   logout: () => Promise<void>;
   getHistory: () => Promise<void>;
   clearStoredStories: () => void;
-  setStories: (stories: UserStory[]) => void; // Added to allow explicit story setting
+  setStories: (stories: UserStory[]) => void; // Added for direct stories manipulation
 }
 
 const FileContext = createContext<FileContextType | undefined>(undefined);
@@ -36,71 +36,49 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     addFiles, 
     removeFile, 
     updateSettings, 
-    clearFiles: clearFilesFromManager 
+    clearFiles: clearFileManagerFiles 
   } = useFileManager();
   
   const { 
-    stories: managedStories, 
+    stories, 
     history, 
     generateStories, 
     createShareLink, 
     getHistory,
-    clearStoredStories: clearManagedStories
+    clearStoredStories,
+    setStories: setStoryManagerStories
   } = useStoryManager(files, settings, user?.id || null, setIsGenerating);
 
-  // Local state for stories to allow manual control
-  const [stories, setStories] = useState<UserStory[]>(() => {
-    // Initialize from localStorage if available
-    const savedStoriesJson = localStorage.getItem('figgytales_stories');
-    if (savedStoriesJson) {
-      try {
-        const savedStories = JSON.parse(savedStoriesJson);
-        if (Array.isArray(savedStories)) {
-          return savedStories;
-        }
-      } catch (error) {
-        console.error('Failed to parse saved stories:', error);
-      }
-    }
-    return [];
-  });
+  // Comprehensive clear function
+  const clearFiles = useCallback(() => {
+    clearFileManagerFiles();
+    clearStoredStories();
+    localStorage.removeItem('figgytales_stories');
+    localStorage.removeItem('figgytales_files');
+    localStorage.removeItem('figgytales_settings');
+  }, [clearFileManagerFiles, clearStoredStories]);
 
-  // Sync stories with localStorage when they change
-  useEffect(() => {
-    if (stories.length > 0) {
-      localStorage.setItem('figgytales_stories', JSON.stringify(stories));
-    } else {
-      localStorage.removeItem('figgytales_stories');
-    }
-  }, [stories]);
+  // Set stories directly (for restoring from localStorage)
+  const setStories = useCallback((newStories: UserStory[]) => {
+    setStoryManagerStories(newStories);
+  }, [setStoryManagerStories]);
 
   // Load history when user changes
   useEffect(() => {
     if (user) {
       getHistory();
+    } else {
+      // Clear user-specific data when logging out
+      clearStoredStories();
     }
-  }, [user, getHistory]);
+  }, [user, getHistory, clearStoredStories]);
 
-  // Override clearFiles to also clear stories
-  const clearFiles = () => {
-    clearFilesFromManager();
-    setStories([]);
-    localStorage.removeItem('figgytales_stories');
-  };
-
-  // Override clearStoredStories to ensure full reset
-  const clearStoredStories = () => {
-    clearManagedStories();
-    setStories([]);
-    localStorage.removeItem('figgytales_stories');
-  };
-
-  // Merge managedStories into local stories when generation completes
+  // Persist stories to localStorage when they change
   useEffect(() => {
-    if (managedStories.length > 0 && !isGenerating) {
-      setStories(managedStories);
+    if (stories.length > 0) {
+      localStorage.setItem('figgytales_stories', JSON.stringify(stories));
     }
-  }, [managedStories, isGenerating]);
+  }, [stories]);
 
   return (
     <FileContext.Provider value={{
@@ -120,7 +98,7 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
       logout,
       getHistory,
       clearStoredStories,
-      setStories // Expose setStories for explicit control
+      setStories // Expose setStories to consumers
     }}>
       {children}
     </FileContext.Provider>

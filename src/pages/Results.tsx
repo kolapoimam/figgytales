@@ -22,72 +22,46 @@ const Results: React.FC = () => {
     clearFiles, 
     createShareLink, 
     user,
-    setStories 
+    setStories // Make sure this is implemented in your context
   } = useFiles();
   
   const navigate = useNavigate();
   const [isCopied, setIsCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
-  const [localStories, setLocalStories] = useState<Story[]>([]);
 
-  // Initialize and filter stories
+  // Load stories from localStorage if context is empty
   useEffect(() => {
-    const initializeStories = () => {
-      if (stories && stories.length > 0) {
-        const filteredStories = stories.filter(story => {
-          const isProperStory = story.title?.startsWith('As a') && story.description && story.criteria?.length > 0;
-          const isNotSummary = !story.title?.includes('Here are');
-          return isProperStory && isNotSummary;
-        });
-
-        setLocalStories(filteredStories);
-        localStorage.setItem('figgytales_stories', JSON.stringify(filteredStories));
-        return;
-      }
-
-      const savedStoriesJson = localStorage.getItem('figgytales_stories');
-      if (savedStoriesJson) {
+    if (stories.length === 0) {
+      const savedStories = localStorage.getItem('figgytales_stories');
+      if (savedStories) {
         try {
-          const savedStories = JSON.parse(savedStoriesJson);
-          if (Array.isArray(savedStories) && savedStories.length > 0) {
-            const filteredSavedStories = savedStories.filter(story => {
-              const isProperStory = story.title?.startsWith('As a') && story.description && story.criteria?.length > 0;
-              const isNotSummary = !story.title?.includes('Here are');
-              return isProperStory && isNotSummary;
-            });
-            setLocalStories(filteredSavedStories);
-            setStories(filteredSavedStories);
-            return;
+          const parsedStories = JSON.parse(savedStories);
+          if (Array.isArray(parsedStories) && parsedStories.length > 0) {
+            setStories(parsedStories);
           }
-        } catch (error) {
-          console.error('Failed to parse saved stories:', error);
+        } catch (e) {
+          console.error("Error parsing saved stories:", e);
         }
       }
+    }
+  }, [stories.length, setStories]);
 
-      setLocalStories([]);
-    };
-
-    initializeStories();
-  }, [stories, setStories]);
-
-  // Persist localStories changes
+  // Persist stories to localStorage when they change
   useEffect(() => {
-    if (localStories.length > 0) {
-      localStorage.setItem('figgytales_stories', JSON.stringify(localStories));
-      setStories(localStories);
+    if (stories.length > 0) {
+      localStorage.setItem('figgytales_stories', JSON.stringify(stories));
     } else {
       localStorage.removeItem('figgytales_stories');
-      setStories([]);
     }
-  }, [localStories, setStories]);
+  }, [stories]);
 
   const copyAllToClipboard = useCallback(() => {
-    if (localStories.length === 0) return;
+    if (stories.length === 0) return;
     
-    let textToCopy = localStories.map((story, i) => 
+    const textToCopy = stories.map((story, i) => 
       `${story.title}\n${story.description}\n\nAcceptance Criteria:\n${
         story.criteria.map((c, j) => `${j + 1}. ${c.description}`).join('\n')
-      }${i < localStories.length - 1 ? '\n\n' + '-'.repeat(40) + '\n\n' : ''}`
+      }${i < stories.length - 1 ? '\n\n' + '-'.repeat(40) + '\n\n' : ''}`
     ).join('');
     
     navigator.clipboard.writeText(textToCopy)
@@ -100,19 +74,21 @@ const Results: React.FC = () => {
         console.error('Failed to copy: ', err);
         toast.error("Failed to copy to clipboard");
       });
-  }, [localStories]);
+  }, [stories]);
 
   const downloadAsCsv = useCallback(() => {
-    if (localStories.length === 0) return;
+    if (stories.length === 0) return;
     
     let csvContent = "Title,Description,Acceptance Criteria\n";
     
-    localStories.forEach(story => {
+    stories.forEach(story => {
       const criteriaText = story.criteria.map(c => 
         c.description.replace(/"/g, '""')
       ).join(' | ');
       
-      csvContent += `"${story.title.replace(/"/g, '""')}","${story.description.replace(/"/g, '""')}","${criteriaText}"\n`;
+      csvContent += `"${story.title.replace(/"/g, '""')}","${
+        story.description.replace(/"/g, '""')
+      }","${criteriaText}"\n`;
     });
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -120,29 +96,27 @@ const Results: React.FC = () => {
     const link = document.createElement('a');
     link.setAttribute('href', url);
     link.setAttribute('download', 'figgytales-stories.csv');
-    link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
     toast.success("CSV file downloaded");
-  }, [localStories]);
+  }, [stories]);
 
   const handleShareLink = async () => {
     setIsSharing(true);
-    await createShareLink();
-    setIsSharing(false);
+    try {
+      await createShareLink();
+    } finally {
+      setIsSharing(false);
+    }
   };
   
   const startOver = () => {
     clearFiles();
-    setLocalStories([]);
-    navigate('/');
-  };
-
-  const generateMore = () => {
-    navigate('/');
+    localStorage.removeItem('figgytales_stories');
+    navigate('/', { replace: true });
   };
 
   return (
@@ -164,7 +138,7 @@ const Results: React.FC = () => {
             <Button 
               variant="secondary" 
               onClick={copyAllToClipboard}
-              disabled={localStories.length === 0}
+              disabled={stories.length === 0}
             >
               {isCopied ? <Check size={16} className="mr-2" /> : <ClipboardCopy size={16} className="mr-2" />}
               {isCopied ? 'Copied' : 'Copy All'}
@@ -173,7 +147,7 @@ const Results: React.FC = () => {
             <Button
               variant="secondary"
               onClick={handleShareLink}
-              disabled={isSharing || localStories.length === 0}
+              disabled={isSharing || stories.length === 0}
             >
               <Share2 size={16} className="mr-2" />
               Share
@@ -181,7 +155,7 @@ const Results: React.FC = () => {
             
             <Button 
               onClick={downloadAsCsv}
-              disabled={localStories.length === 0}
+              disabled={stories.length === 0}
             >
               <Download size={16} className="mr-2" />
               Download CSV
@@ -198,39 +172,21 @@ const Results: React.FC = () => {
         
         {user && <HistoryList className="mb-8" />}
         
-        {localStories.length === 0 ? (
+        {stories.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-muted-foreground">No stories generated yet. Upload design files and generate stories.</p>
             <Button 
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/', { replace: true })}
               className="mt-4"
             >
               Go to Upload
             </Button>
           </div>
         ) : (
-          <>
-            {localStories.length < 4 && (
-              <div className="mb-6 text-center text-muted-foreground">
-                <p>Only {localStories.length} of 4 requested stories were generated. Click "Generate More" to try again.</p>
-              </div>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {localStories.map((story, i) => (
-                <StoryCard key={story.id} story={story} index={i} />
-              ))}
-            </div>
-          </>
-        )}
-
-        {localStories.length > 0 && (
-          <div className="mt-8 flex justify-center">
-            <Button 
-              onClick={generateMore}
-              className="w-full sm:w-auto"
-            >
-              Generate More
-            </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {stories.map((story, i) => (
+              <StoryCard key={`${story.id}-${i}`} story={story} index={i} />
+            ))}
           </div>
         )}
       </div>
