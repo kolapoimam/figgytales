@@ -54,9 +54,9 @@ export const useStoryManager = (
         
         const imageBase64s = await Promise.all(imagePromises);
         
-        // Improved prompt with clearer instructions and fallback
+        // Enhanced prompt to improve AI output
         const aiRequest: AIRequest = {
-          prompt: `Generate exactly ${remainingStories} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story must strictly follow the format 'As a [user type], I want to [action], so that [benefit]' in both the title and description. The title must start with 'As a'. Each story must have a description and exactly ${settings.criteriaCount} clear, testable acceptance criteria. If you cannot generate exactly ${remainingStories} stories, generate as many as possible in the correct format. Do not include any summaries, introductions, placeholder text such as 'Here are X user stories', or any other content that is not a user story. Return only the user stories in the specified format.`,
+          prompt: `Generate exactly ${remainingStories} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story must strictly follow the format 'As a [user type], I want to [action], so that [benefit]' in both the title and description. The title must start with 'As a'. Each story must have a description and exactly ${settings.criteriaCount} clear, testable acceptance criteria. If you cannot generate exactly ${remainingStories} stories or the exact number of criteria, generate as many as possible in the correct format and ensure each story has the required fields. Do not include any summaries, introductions, placeholder text such as 'Here are X user stories', or any other content that is not a user story. Return only the user stories in the specified format.`,
           images: imageBase64s,
           storyCount: remainingStories,
           criteriaCount: settings.criteriaCount,
@@ -71,9 +71,9 @@ export const useStoryManager = (
 
         console.log(`Attempt ${attempts + 1} - Raw AI response:`, generatedStories);
 
-        // Relaxed validation with fallback
+        // Relaxed validation with modification of stories
         const validStories = generatedStories.map((story: UserStory) => {
-          // Ensure story has required fields
+          // Ensure story has required fields, modify if necessary
           const validatedStory: UserStory = {
             id: story.id || uuidv4(),
             title: story.title?.startsWith('As a') ? story.title : `As a ${settings.userType || 'User'}, I want to [action], so that [benefit]`,
@@ -100,7 +100,7 @@ export const useStoryManager = (
 
           return validatedStory;
         }).filter((story: UserStory) => {
-          // Minimal validation to exclude completely invalid responses
+          // Minimal validation to exclude summaries
           const isNotSummary = !story.title?.includes('Here are');
           return isNotSummary;
         });
@@ -111,7 +111,7 @@ export const useStoryManager = (
         console.log(`Attempt ${attempts} - Valid stories so far: ${allValidStories.length}/${settings.storyCount}`);
       }
 
-      // If we still don't have enough stories, generate placeholders
+      // If we don't have enough stories, generate placeholders
       if (allValidStories.length < settings.storyCount) {
         const remaining = settings.storyCount - allValidStories.length;
         const placeholderStories = Array(remaining).fill(null).map((_, index) => ({
@@ -122,7 +122,7 @@ export const useStoryManager = (
         }));
         allValidStories = [...allValidStories, ...placeholderStories];
 
-        toast.warning(`Expected ${settings.storyCount} user stories, but only ${validStories.length} valid stories were generated after ${maxAttempts} attempts.`, {
+        toast.warning(`Expected ${settings.storyCount} user stories, but only ${allValidStories.length - remaining} valid stories were generated after ${maxAttempts} attempts.`, {
           description: `Added ${remaining} placeholder stories to meet the requirement. You can edit these or try generating more.`
         });
       } else {
