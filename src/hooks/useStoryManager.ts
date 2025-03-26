@@ -49,9 +49,9 @@ export const useStoryManager = (
         const imageBase64s = await Promise.all(imagePromises);
 
         const aiRequest: AIRequest = {
-          prompt: `Based on the provided design screens, generate exactly ${remainingStories} user stories. Each user story must be in the following format:
+          prompt: `Based on the provided design screens, generate exactly ${remainingStories} user stories, each with exactly ${settings.criteriaCount} acceptance criteria. Use the following format for each story, with no additional text before or after the stories:
 
-Title: As a [user type], I want to [action], so that [benefit]
+As a [user type], I want to [action], so that [benefit]
 Description: [Provide a brief description of the user story]
 Acceptance Criteria:
 1. [First acceptance criterion]
@@ -59,29 +59,31 @@ Acceptance Criteria:
 ...
 ${settings.criteriaCount}. [Last acceptance criterion]
 
-Ensure that:
-- Each story has exactly ${settings.criteriaCount} acceptance criteria.
-- The title starts with 'As a'.
-- There is a description for each story.
-- Do not include any text before or after the user stories, such as summaries or introductions.
-- Only provide the user stories themselves.
+Rules:
+- Each story must start with a line in the format "As a [user type], I want to [action], so that [benefit]".
+- The second line must start with "Description:" followed by a brief description.
+- The next ${settings.criteriaCount} lines must be numbered acceptance criteria (e.g., "1. Criterion").
+- Each story must have exactly ${settings.criteriaCount} acceptance criteria.
+- Separate each story with a blank line.
+- Do not include any summaries, introductions, or additional text (e.g., "Here are X user stories").
+- Only output the user stories in the specified format.
 
-For example, if generating 2 stories with 3 acceptance criteria each:
-Title: As a user, I want to log in, so that I can access my account
+Example for 2 stories with 3 acceptance criteria each:
+As a user, I want to log in, so that I can access my account
 Description: The login feature allows users to access their personal dashboard.
 Acceptance Criteria:
 1. The login form should have fields for username and password.
 2. There should be a 'Forgot Password' link.
 3. Successful login should redirect to the dashboard.
 
-Title: As a user, I want to reset my password, so that I can regain access if I forget it
+As a user, I want to reset my password, so that I can regain access if I forget it
 Description: Password reset functionality for account recovery.
 Acceptance Criteria:
 1. User should receive a reset link via email.
 2. The reset link should expire after 24 hours.
 3. User should be able to set a new password.
 
-Provide exactly ${remainingStories} such stories based on the design screens.`,
+Generate exactly ${remainingStories} user stories based on the design screens, each with ${settings.criteriaCount} acceptance criteria, following the format above.`,
           images: imageBase64s,
           storyCount: remainingStories,
           criteriaCount: settings.criteriaCount,
@@ -96,11 +98,19 @@ Provide exactly ${remainingStories} such stories based on the design screens.`,
           const isValid = (
             story.title?.startsWith('As a') &&
             story.description &&
-            Array.isArray(story.criteria) && story.criteria.length === settings.criteriaCount &&
-            !story.title?.includes('Here are') &&
-            !story.description?.includes('Here are')
+            Array.isArray(story.criteria) &&
+            story.criteria.length === settings.criteriaCount &&
+            !story.title?.toLowerCase().includes('here are') &&
+            !story.description?.toLowerCase().includes('here are')
           );
-          if (!isValid) console.log(`Attempt ${attempts + 1} - Filtered out:`, story);
+          if (!isValid) {
+            console.log(`Attempt ${attempts + 1} - Filtered out invalid story:`, {
+              title: story.title,
+              description: story.description,
+              criteriaCount: story.criteria?.length,
+              expectedCriteria: settings.criteriaCount,
+            });
+          }
           return isValid;
         });
 
@@ -109,13 +119,17 @@ Provide exactly ${remainingStories} such stories based on the design screens.`,
         console.log(`Attempt ${attempts} - Valid stories: ${allValidStories.length}/${settings.storyCount}`);
       }
 
-      if (allValidStories.length < settings.storyCount) {
+      if (allValidStories.length === 0) {
+        toast.error("Failed to generate any valid stories", {
+          description: `No valid stories were generated after ${maxAttempts} attempts. Please try again or adjust your settings.`,
+        });
+      } else if (allValidStories.length < settings.storyCount) {
         toast.warning(`Expected ${settings.storyCount} stories, but got ${allValidStories.length} after ${maxAttempts} attempts.`, {
-          description: "Please try again or adjust your settings."
+          description: "Displaying the generated stories. You can try generating more.",
         });
       } else {
         toast.success("Stories generated", {
-          description: `${allValidStories.length} user stories created based on your designs.`
+          description: `${allValidStories.length} user stories created based on your designs.`,
         });
       }
 
