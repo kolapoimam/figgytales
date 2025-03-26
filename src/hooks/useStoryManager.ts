@@ -54,8 +54,9 @@ export const useStoryManager = (
         
         const imageBase64s = await Promise.all(imagePromises);
         
+        // Improved prompt with clearer instructions and fallback
         const aiRequest: AIRequest = {
-          prompt: `Generate exactly ${remainingStories} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story must strictly follow the format 'As a [user type], I want to [action], so that [benefit]'. Ensure each story has a title starting with 'As a', a description, and exactly ${settings.criteriaCount} clear and testable acceptance criteria. Do not include any summaries, introductions, placeholder text such as 'Here are X user stories', or any other content that is not a user story. Return only the ${remainingStories} user stories in the specified format.`,
+          prompt: `Generate exactly ${remainingStories} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story must strictly follow the format 'As a [user type], I want to [action], so that [benefit]' in both the title and description. The title must start with 'As a'. Each story must have a description and exactly ${settings.criteriaCount} clear, testable acceptance criteria. If you cannot generate exactly ${remainingStories} stories, generate as many as possible in the correct format. Do not include any summaries, introductions, placeholder text such as 'Here are X user stories', or any other content that is not a user story. Return only the user stories in the specified format.`,
           images: imageBase64s,
           storyCount: remainingStories,
           criteriaCount: settings.criteriaCount,
@@ -70,17 +71,38 @@ export const useStoryManager = (
 
         console.log(`Attempt ${attempts + 1} - Raw AI response:`, generatedStories);
 
-        const validStories = generatedStories.filter(story => {
-          const isValid = (
-            story.title?.startsWith('As a') &&
-            story.description &&
-            Array.isArray(story.criteria) && story.criteria.length === settings.criteriaCount &&
-            !story.title?.includes('Here are')
-          );
-          if (!isValid) {
-            console.log(`Attempt ${attempts + 1} - Filtered out invalid story:`, story);
+        // Relaxed validation with fallback
+        const validStories = generatedStories.map((story: UserStory) => {
+          // Ensure story has required fields
+          const validatedStory: UserStory = {
+            id: story.id || uuidv4(),
+            title: story.title?.startsWith('As a') ? story.title : `As a ${settings.userType || 'User'}, I want to [action], so that [benefit]`,
+            description: story.description || 'Description placeholder - please edit this story.',
+            criteria: Array.isArray(story.criteria) && story.criteria.length > 0
+              ? story.criteria.slice(0, settings.criteriaCount)
+              : Array(settings.criteriaCount).fill({ description: 'Acceptance criterion placeholder - please edit.' })
+          };
+
+          // Pad or trim criteria to match criteriaCount
+          if (validatedStory.criteria.length < settings.criteriaCount) {
+            validatedStory.criteria = [
+              ...validatedStory.criteria,
+              ...Array(settings.criteriaCount - validatedStory.criteria.length).fill({
+                description: 'Acceptance criterion placeholder - please edit.'
+              })
+            ];
           }
-          return isValid;
+
+          // Log if the story was modified
+          if (!story.title?.startsWith('As a') || !story.description || !Array.isArray(story.criteria)) {
+            console.log(`Attempt ${attempts + 1} - Modified story to meet requirements:`, validatedStory);
+          }
+
+          return validatedStory;
+        }).filter((story: UserStory) => {
+          // Minimal validation to exclude completely invalid responses
+          const isNotSummary = !story.title?.includes('Here are');
+          return isNotSummary;
         });
 
         allValidStories = [...allValidStories, ...validStories];
@@ -89,9 +111,19 @@ export const useStoryManager = (
         console.log(`Attempt ${attempts} - Valid stories so far: ${allValidStories.length}/${settings.storyCount}`);
       }
 
+      // If we still don't have enough stories, generate placeholders
       if (allValidStories.length < settings.storyCount) {
-        toast.warning(`Expected ${settings.storyCount} user stories, but only ${allValidStories.length} valid stories were generated after ${maxAttempts} attempts.`, {
-          description: "Displaying the available stories. You can try generating more."
+        const remaining = settings.storyCount - allValidStories.length;
+        const placeholderStories = Array(remaining).fill(null).map((_, index) => ({
+          id: uuidv4(),
+          title: `As a ${settings.userType || 'User'}, I want to [action], so that [benefit]`,
+          description: `Placeholder Story ${allValidStories.length + index + 1} - Generated due to insufficient valid stories. Please edit or regenerate.`,
+          criteria: Array(settings.criteriaCount).fill({ description: 'Acceptance criterion placeholder - please edit.' })
+        }));
+        allValidStories = [...allValidStories, ...placeholderStories];
+
+        toast.warning(`Expected ${settings.storyCount} user stories, but only ${validStories.length} valid stories were generated after ${maxAttempts} attempts.`, {
+          description: `Added ${remaining} placeholder stories to meet the requirement. You can edit these or try generating more.`
         });
       } else {
         toast.success("Stories generated", {
@@ -117,8 +149,16 @@ export const useStoryManager = (
       
     } catch (error) {
       console.error('Error generating stories:', error);
+      // Fallback in case of complete failure
+      const fallbackStories = Array(settings.storyCount).fill(null).map((_, index) => ({
+        id: uuidv4(),
+        title: `As a ${settings.userType || 'User'}, I want to [action], so that [benefit]`,
+        description: `Fallback Story ${index + 1} - Generated due to an error. Please edit or try again.`,
+        criteria: Array(settings.criteriaCount).fill({ description: 'Acceptance criterion placeholder - please edit.' })
+      }));
+      setStories(fallbackStories);
       toast.error("Failed to generate stories", {
-        description: error.message || "There was an error processing your design files. Please try again later."
+        description: "Generated placeholder stories due to an error. Please edit these or try again later."
       });
     } finally {
       setIsGenerating(false);
