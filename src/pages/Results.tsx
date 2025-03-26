@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -11,12 +10,12 @@ import HistoryList from '@/components/HistoryList';
 import LoginButton from '@/components/LoginButton';
 
 const Results: React.FC = () => {
-  const { stories, clearFiles, createShareLink, user } = useFiles();
+  const { stories, clearFiles, createShareLink, user, setStories } = useFiles();
   const navigate = useNavigate();
   const [isCopied, setIsCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   
-  // Ensure we display stored stories from localStorage if stories array is empty
+  // Load stories from localStorage if context is empty
   useEffect(() => {
     if (stories.length === 0) {
       const savedStories = localStorage.getItem('figgytales_stories');
@@ -24,30 +23,24 @@ const Results: React.FC = () => {
         try {
           const parsedStories = JSON.parse(savedStories);
           if (Array.isArray(parsedStories) && parsedStories.length > 0) {
-            // This will trigger a re-render with the stored stories
-            console.log("Loading stories from localStorage");
+            setStories(parsedStories);
           }
         } catch (e) {
           console.error("Error parsing saved stories:", e);
+          toast.error("Error loading saved stories");
         }
       }
     }
-  }, [stories]);
-  
+  }, [stories.length, setStories]);
+
   const copyAllToClipboard = () => {
     if (stories.length === 0) return;
     
-    let textToCopy = '';
-    
-    stories.forEach((story, i) => {
-      textToCopy += `${story.title}\n${story.description}\n\nAcceptance Criteria:\n${
+    let textToCopy = stories.map((story, i) => 
+      `${story.title}\n${story.description}\n\nAcceptance Criteria:\n${
         story.criteria.map((c, j) => `${j + 1}. ${c.description}`).join('\n')
-      }`;
-      
-      if (i < stories.length - 1) {
-        textToCopy += '\n\n' + '-'.repeat(40) + '\n\n';
-      }
-    });
+      }${i < stories.length - 1 ? '\n\n' + '-'.repeat(40) + '\n\n' : ''}`
+    ).join('');
     
     navigator.clipboard.writeText(textToCopy)
       .then(() => {
@@ -68,7 +61,9 @@ const Results: React.FC = () => {
     
     stories.forEach(story => {
       const criteriaText = story.criteria.map(c => c.description.replace(/"/g, '""')).join(' | ');
-      csvContent += `"${story.title}","${story.description.replace(/"/g, '""')}","${criteriaText}"\n`;
+      csvContent += `"${story.title.replace(/"/g, '""')}","${
+        story.description.replace(/"/g, '""')
+      }","${criteriaText}"\n`;
     });
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -76,7 +71,6 @@ const Results: React.FC = () => {
     const link = document.createElement('a');
     link.setAttribute('href', url);
     link.setAttribute('download', 'figgytales-stories.csv');
-    link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -87,22 +81,35 @@ const Results: React.FC = () => {
   
   const handleShareLink = async () => {
     setIsSharing(true);
-    await createShareLink();
-    setIsSharing(false);
+    try {
+      await createShareLink();
+      toast.success("Share link created");
+    } catch (error) {
+      console.error('Sharing error:', error);
+      toast.error("Failed to create share link");
+    } finally {
+      setIsSharing(false);
+    }
   };
   
   const startOver = () => {
-    // Just clear the files but keep the stories
+    // Clear all state and storage
     clearFiles();
-    navigate('/');
+    setStories([]);
+    localStorage.removeItem('figgytales_stories');
+    localStorage.removeItem('figgytales_files');
+    localStorage.removeItem('figgytales_settings');
+    
+    // Navigate to home without keeping in history
+    navigate('/', { replace: true });
   };
-  
+
   return (
     <main className="min-h-screen flex flex-col">
       <Header />
       
       <div className="flex-1 max-w-5xl w-full mx-auto px-4 md:px-6 pb-20">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 animate-fade-in">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <Button 
             variant="outline" 
             onClick={startOver}
@@ -128,7 +135,7 @@ const Results: React.FC = () => {
               disabled={isSharing || stories.length === 0}
             >
               <Share2 size={16} className="mr-2" />
-              Share
+              {isSharing ? 'Sharing...' : 'Share'}
             </Button>
             
             <Button 
@@ -163,7 +170,7 @@ const Results: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {stories.map((story, i) => (
-              <StoryCard key={story.id} story={story} index={i} />
+              <StoryCard key={`${story.id}-${i}`} story={story} index={i} />
             ))}
           </div>
         )}
