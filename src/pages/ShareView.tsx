@@ -1,29 +1,40 @@
-
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import StoryCard from '@/components/StoryCard';
 import { Button } from '@/components/Button';
 import { Home, ClipboardCopy, Check } from 'lucide-react';
 import { toast } from "sonner";
-import { UserStory } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
+
+// Ensure type safety
+interface UserStory {
+  id: string;
+  title: string;
+  description: string;
+  criteria?: { description: string }[];
+}
 
 const ShareView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [stories, setStories] = useState<UserStory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     const fetchSharedStories = async () => {
-      if (!id) return;
+      if (!id) {
+        setError("Invalid share link");
+        setIsLoading(false);
+        return;
+      }
       
       try {
-        setIsLoading(true);
         const { data, error } = await supabase
           .from('shared_links')
-          .select('stories')
+          .select('stories, expires_at')
           .eq('id', id)
           .single();
         
@@ -31,15 +42,28 @@ const ShareView: React.FC = () => {
           throw error;
         }
         
-        if (data && data.stories) {
-          // Cast the JSON data to UserStory[] type
-          setStories(data.stories as unknown as UserStory[]);
-        } else {
-          toast.error("No stories found or link has expired");
+        if (!data) {
+          setError("Shared link not found");
+          setIsLoading(false);
+          return;
         }
-      } catch (error) {
-        console.error('Error fetching shared stories:', error);
-        toast.error("Failed to load shared stories");
+
+        // Check expiration
+        if (data.expires_at && new Date(data.expires_at) < new Date()) {
+          setError("This share link has expired");
+          setIsLoading(false);
+          return;
+        }
+
+        // Validate stories
+        if (data.stories && Array.isArray(data.stories)) {
+          setStories(data.stories);
+        } else {
+          setError("Invalid stories data format");
+        }
+      } catch (err) {
+        console.error('Error fetching shared stories:', err);
+        setError("Failed to load shared stories");
       } finally {
         setIsLoading(false);
       }
@@ -51,17 +75,11 @@ const ShareView: React.FC = () => {
   const copyAllToClipboard = () => {
     if (stories.length === 0) return;
     
-    let textToCopy = '';
-    
-    stories.forEach((story, i) => {
-      textToCopy += `${story.title}\n${story.description}\n\nAcceptance Criteria:\n${
-        story.criteria.map((c, j) => `${j + 1}. ${c.description}`).join('\n')
-      }`;
-      
-      if (i < stories.length - 1) {
-        textToCopy += '\n\n' + '-'.repeat(40) + '\n\n';
-      }
-    });
+    let textToCopy = stories.map((story, i) => 
+      `${story.title}\n${story.description}\n\nAcceptance Criteria:\n${
+        story.criteria?.map((c, j) => `${j + 1}. ${c.description}`).join('\n') || 'No criteria'
+      }${i < stories.length - 1 ? '\n\n' + '-'.repeat(40) + '\n\n' : ''}`
+    ).join('');
     
     navigator.clipboard.writeText(textToCopy)
       .then(() => {
@@ -75,6 +93,19 @@ const ShareView: React.FC = () => {
       });
   };
   
+  if (error) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button onClick={() => navigate('/')}>
+            Go Home
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen flex flex-col">
       <Header />
@@ -88,14 +119,15 @@ const ShareView: React.FC = () => {
             </Button>
           </Link>
           
-          <Button 
-            variant="secondary" 
-            onClick={copyAllToClipboard}
-            disabled={stories.length === 0}
-          >
-            {isCopied ? <Check size={16} className="mr-2" /> : <ClipboardCopy size={16} className="mr-2" />}
-            {isCopied ? 'Copied' : 'Copy All'}
-          </Button>
+          {stories.length > 0 && (
+            <Button 
+              variant="secondary" 
+              onClick={copyAllToClipboard}
+            >
+              {isCopied ? <Check size={16} className="mr-2" /> : <ClipboardCopy size={16} className="mr-2" />}
+              {isCopied ? 'Copied' : 'Copy All'}
+            </Button>
+          )}
         </div>
         
         {isLoading ? (
@@ -107,12 +139,19 @@ const ShareView: React.FC = () => {
           <>
             {stories.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No stories found or the share link has expired.</p>
+                <p className="text-muted-foreground">No stories found in this share.</p>
+                <Button onClick={() => navigate('/')} className="mt-4">
+                  Go Home
+                </Button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {stories.map((story, i) => (
-                  <StoryCard key={story.id} story={story} index={i} />
+                  <StoryCard 
+                    key={`${story.id}-${i}`} 
+                    story={story} 
+                    index={i} 
+                  />
                 ))}
               </div>
             )}
