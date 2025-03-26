@@ -7,7 +7,7 @@ import { Button } from '@/components/Button';
 import { Home, ClipboardCopy, Check } from 'lucide-react';
 import { toast } from "sonner";
 import { UserStory } from '@/lib/types';
-import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '@/integrations/supabase/client';
 
 const ShareView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,25 +16,26 @@ const ShareView: React.FC = () => {
   const [isCopied, setIsCopied] = useState(false);
   
   useEffect(() => {
-    // In a real app, this would fetch the shared stories by ID from a database
-    // For now, we'll create mock stories
     const fetchSharedStories = async () => {
+      if (!id) return;
+      
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('shared_links')
+          .select('stories')
+          .eq('id', id)
+          .single();
         
-        // Mock data
-        const mockStories: UserStory[] = Array.from({ length: 3 }, (_, i) => ({
-          id: uuidv4(),
-          title: `Shared Story ${i + 1}`,
-          description: `This is a shared user story description for story ${i + 1}.`,
-          criteria: Array.from({ length: 3 }, (_, j) => ({
-            id: uuidv4(),
-            description: `Acceptance criterion ${j + 1} for shared story ${i + 1}`
-          }))
-        }));
+        if (error) {
+          throw error;
+        }
         
-        setStories(mockStories);
+        if (data && data.stories) {
+          setStories(data.stories);
+        } else {
+          toast.error("No stories found or link has expired");
+        }
       } catch (error) {
         console.error('Error fetching shared stories:', error);
         toast.error("Failed to load shared stories");
@@ -89,6 +90,7 @@ const ShareView: React.FC = () => {
           <Button 
             variant="secondary" 
             onClick={copyAllToClipboard}
+            disabled={stories.length === 0}
           >
             {isCopied ? <Check size={16} className="mr-2" /> : <ClipboardCopy size={16} className="mr-2" />}
             {isCopied ? 'Copied' : 'Copy All'}
@@ -101,11 +103,19 @@ const ShareView: React.FC = () => {
             <p className="mt-4 text-muted-foreground">Loading shared stories...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {stories.map((story, i) => (
-              <StoryCard key={story.id} story={story} index={i} />
-            ))}
-          </div>
+          <>
+            {stories.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No stories found or the share link has expired.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {stories.map((story, i) => (
+                  <StoryCard key={story.id} story={story} index={i} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </main>

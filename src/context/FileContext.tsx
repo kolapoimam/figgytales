@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import { DesignFile, StorySettings, UserStory, GenerationHistory, ShareLink, User, AIRequest, AIResponse } from '@/lib/types';
 import { toast } from "sonner";
@@ -163,12 +164,15 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
           
           if (user) {
             try {
-              await supabase.from('history').insert({
-                user_id: user.id,
-                settings: settings,
-                stories: data.stories,
-                created_at: new Date().toISOString()
-              });
+              // Fix the type issues with the history insert
+              await supabase
+                .from('history')
+                .insert({
+                  user_id: user.id,
+                  settings: settings,
+                  stories: data.stories,
+                  created_at: new Date().toISOString()
+                });
             } catch (error) {
               console.error('Error saving to history:', error);
             }
@@ -203,12 +207,15 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     try {
       const shareId = uuidv4();
       if (user) {
-        await supabase.from('shared_links').insert({
-          id: shareId,
-          user_id: user.id,
-          stories: stories,
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-        });
+        // Fix the type issues with the shared_links insert
+        await supabase
+          .from('shared_links')
+          .insert({
+            id: shareId,
+            user_id: user.id,
+            stories: stories,
+            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+          });
       }
       
       const shareUrl = `${window.location.origin}/share/${shareId}`;
@@ -266,6 +273,7 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     
     try {
+      // Fix the type issues with the history select
       const { data, error } = await supabase
         .from('history')
         .select('*')
@@ -274,14 +282,16 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) throw error;
       
-      const formattedHistory: GenerationHistory[] = data.map(item => ({
-        id: item.id,
-        timestamp: new Date(item.created_at),
-        stories: item.stories,
-        settings: item.settings
-      }));
-      
-      setHistory(formattedHistory);
+      if (data) {
+        const formattedHistory: GenerationHistory[] = data.map(item => ({
+          id: item.id,
+          timestamp: new Date(item.created_at),
+          stories: item.stories,
+          settings: item.settings
+        }));
+        
+        setHistory(formattedHistory);
+      }
     } catch (error) {
       console.error('Error fetching history:', error);
       toast.error("Failed to load history");

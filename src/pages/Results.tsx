@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import StoryCard from '@/components/StoryCard';
@@ -15,8 +14,6 @@ const Results: React.FC = () => {
   const navigate = useNavigate();
   const [isCopied, setIsCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
-  
-  // We're removing the redirect to home to fix the issue with disappearing user story cards
   
   const copyAllToClipboard = () => {
     if (stories.length === 0) return;
@@ -76,7 +73,7 @@ const Results: React.FC = () => {
   };
   
   const startOver = () => {
-    // Preserve the stories while clearing files
+    // Just clear the files but keep the stories
     clearFiles();
     navigate('/');
   };
