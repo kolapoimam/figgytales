@@ -21,6 +21,7 @@ interface FileContextType {
   login: (provider: 'google') => Promise<void>;
   logout: () => Promise<void>;
   getHistory: () => Promise<void>;
+  clearStoredStories: () => void;
 }
 
 const FileContext = createContext<FileContextType | undefined>(undefined);
@@ -44,6 +45,7 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     generateStories, 
     createShareLink, 
     getHistory,
+    clearStoredStories
   } = useStoryManager(files, settings, user?.id || null, setIsGenerating);
 
   // Load history when user changes
@@ -69,7 +71,8 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
       createShareLink,
       login,
       logout,
-      getHistory
+      getHistory,
+      clearStoredStories
     }}>
       {children}
     </FileContext.Provider>

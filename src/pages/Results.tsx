@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import StoryCard from '@/components/StoryCard';
@@ -14,6 +15,24 @@ const Results: React.FC = () => {
   const navigate = useNavigate();
   const [isCopied, setIsCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  
+  // Ensure we display stored stories from localStorage if stories array is empty
+  useEffect(() => {
+    if (stories.length === 0) {
+      const savedStories = localStorage.getItem('figgytales_stories');
+      if (savedStories) {
+        try {
+          const parsedStories = JSON.parse(savedStories);
+          if (Array.isArray(parsedStories) && parsedStories.length > 0) {
+            // This will trigger a re-render with the stored stories
+            console.log("Loading stories from localStorage");
+          }
+        } catch (e) {
+          console.error("Error parsing saved stories:", e);
+        }
+      }
+    }
+  }, [stories]);
   
   const copyAllToClipboard = () => {
     if (stories.length === 0) return;

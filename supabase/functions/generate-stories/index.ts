@@ -27,13 +27,23 @@ serve(async (req: Request) => {
     
     console.log(`Generating ${requestData.storyCount} user stories with ${requestData.criteriaCount} acceptance criteria each`);
     console.log(`Number of images: ${requestData.images.length}`);
-    console.log(`Audience: ${requestData.audienceType}, User Type: ${requestData.userType}`);
+    
+    if (requestData.audienceType) {
+      console.log(`Audience: ${requestData.audienceType}, User Type: ${requestData.userType}`);
+    } else {
+      console.log(`User Type: ${requestData.userType} (no specific audience type)`);
+    }
 
     // Prepare the user prompt with audience and user type context
-    const userPrompt = requestData.prompt || 
-      `Generate ${requestData.storyCount} user stories with ${requestData.criteriaCount} acceptance criteria each based on these design screens.` +
-      `The stories should be written for ${requestData.audienceType} audience and focus on ${requestData.userType} users. ` +
-      `Each user story should follow the format 'As a [user type], I want to [action], so that [benefit]'. ` +
+    let userPrompt = `Generate ${requestData.storyCount} user stories with ${requestData.criteriaCount} acceptance criteria each based on these design screens. `;
+    
+    if (requestData.audienceType) {
+      userPrompt += `The stories should be written for ${requestData.audienceType} audience and focus on ${requestData.userType} users. `;
+    } else {
+      userPrompt += `The stories should focus on ${requestData.userType} users. `;
+    }
+    
+    userPrompt += `Each user story should follow the format 'As a [user type], I want to [action], so that [benefit]'. ` +
       `Make sure acceptance criteria are clear and testable.`;
 
     // Prepare the request for Google AI API

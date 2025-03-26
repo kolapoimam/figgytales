@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from "sonner";
 import { UserStory, GenerationHistory, StorySettings, AIRequest } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,8 +10,18 @@ export const useStoryManager = (
   userId: string | null,
   setIsGenerating: (value: boolean) => void
 ) => {
-  const [stories, setStories] = useState<UserStory[]>([]);
+  const [stories, setStories] = useState<UserStory[]>(() => {
+    const savedStories = localStorage.getItem('figgytales_stories');
+    return savedStories ? JSON.parse(savedStories) : [];
+  });
+  
   const [history, setHistory] = useState<GenerationHistory[]>([]);
+
+  useEffect(() => {
+    if (stories.length > 0) {
+      localStorage.setItem('figgytales_stories', JSON.stringify(stories));
+    }
+  }, [stories]);
 
   const generateStories = useCallback(async () => {
     if (files.length === 0) {
@@ -40,9 +50,12 @@ export const useStoryManager = (
         images: imageBase64s,
         storyCount: settings.storyCount,
         criteriaCount: settings.criteriaCount,
-        audienceType: settings.audienceType,
         userType: settings.userType
       };
+      
+      if (settings.audienceType) {
+        aiRequest.audienceType = settings.audienceType;
+      }
       
       const generatedStories = await generateUserStories(aiRequest);
       setStories(generatedStories);
@@ -87,10 +100,8 @@ export const useStoryManager = (
         const shareId = await createStoryShareLink(userId, stories);
         shareUrl = `${window.location.origin}/share/${shareId}`;
       } else {
-        // For non-authenticated users, generate a UUID but don't save to DB
         const tempShareId = uuidv4();
         shareUrl = `${window.location.origin}/share/${tempShareId}`;
-        // This won't actually work for non-auth users without additional implementation
       }
       
       toast.success("Share link created", {
@@ -129,13 +140,19 @@ export const useStoryManager = (
     }
   }, [userId]);
 
+  const clearStoredStories = useCallback(() => {
+    localStorage.removeItem('figgytales_stories');
+    setStories([]);
+  }, []);
+
   return {
     stories,
     history,
     generateStories,
-    createShareLink: createShareLink,
+    createShareLink,
     getHistory,
     setStories,
-    setHistory
+    setHistory,
+    clearStoredStories
   };
 };

@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { DesignFile, StorySettings } from '@/lib/types';
 import { toast } from "sonner";
@@ -8,8 +7,7 @@ export const useFileManager = () => {
   const [settings, setSettings] = useState<StorySettings>({
     storyCount: 3,
     criteriaCount: 3,
-    audienceType: "external", // default to external audience
-    userType: "End User" // default user type
+    userType: "User" // Default user type without requiring audience type
   });
   const [isGenerating, setIsGenerating] = useState(false);
 

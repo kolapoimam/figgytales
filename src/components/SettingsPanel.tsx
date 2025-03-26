@@ -50,9 +50,11 @@ const SettingsPanel: React.FC = () => {
   
   useEffect(() => {
     // Ensure userType is valid whenever audienceType changes
-    const validUserTypes = USER_TYPES[settings.audienceType as keyof typeof USER_TYPES];
-    if (!validUserTypes.includes(settings.userType)) {
-      updateSettings({ userType: validUserTypes[0] });
+    if (settings.audienceType) {
+      const validUserTypes = USER_TYPES[settings.audienceType as keyof typeof USER_TYPES];
+      if (!validUserTypes.includes(settings.userType)) {
+        updateSettings({ userType: validUserTypes[0] });
+      }
     }
   }, [settings.audienceType]);
   
@@ -120,11 +122,11 @@ const SettingsPanel: React.FC = () => {
           />
         </div>
         
-        {/* New audience type selection */}
+        {/* Optional audience type selection */}
         <div className="space-y-4">
-          <label className="text-sm font-medium">Audience Type</label>
+          <label className="text-sm font-medium">Audience Type (Optional)</label>
           <RadioGroup 
-            value={settings.audienceType} 
+            value={settings.audienceType || ""}
             onValueChange={handleAudienceTypeChange}
             className="flex space-x-4"
           >
@@ -136,10 +138,14 @@ const SettingsPanel: React.FC = () => {
               <RadioGroupItem value="external" id="external" />
               <Label htmlFor="external">External</Label>
             </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="" id="none" />
+              <Label htmlFor="none">None</Label>
+            </div>
           </RadioGroup>
         </div>
         
-        {/* New user type dropdown */}
+        {/* User type dropdown */}
         <div className="space-y-4">
           <label htmlFor="userType" className="text-sm font-medium">User Type</label>
           <Select 
@@ -150,11 +156,18 @@ const SettingsPanel: React.FC = () => {
               <SelectValue placeholder="Select a user type" />
             </SelectTrigger>
             <SelectContent>
-              {USER_TYPES[settings.audienceType as keyof typeof USER_TYPES].map((type) => (
-                <SelectItem key={type} value={type}>
-                  {type}
-                </SelectItem>
-              ))}
+              {settings.audienceType 
+                ? USER_TYPES[settings.audienceType as keyof typeof USER_TYPES].map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))
+                : USER_TYPES.default.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))
+              }
             </SelectContent>
           </Select>
         </div>

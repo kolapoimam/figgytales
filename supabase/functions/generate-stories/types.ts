@@ -4,7 +4,7 @@ export interface AIRequest {
   images: string[];
   storyCount: number;
   criteriaCount: number;
-  audienceType: string; // "internal" or "external"
+  audienceType?: string; // "internal" or "external" - now optional
   userType: string; // selected user type
 }
 

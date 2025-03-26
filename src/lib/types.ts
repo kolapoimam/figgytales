@@ -8,7 +8,7 @@ export interface DesignFile {
 export interface StorySettings {
   storyCount: number;
   criteriaCount: number;
-  audienceType: string; // "internal" or "external"
+  audienceType?: string; // "internal" or "external", now optional
   userType: string; // selected user type
 }
 
@@ -51,7 +51,7 @@ export interface AIRequest {
   images: string[];
   storyCount: number;
   criteriaCount: number;
-  audienceType: string;
+  audienceType?: string; // Now optional
   userType: string;
 }
 
@@ -62,5 +62,6 @@ export interface AIResponse {
 // User types for dropdown
 export const USER_TYPES = {
   internal: ["Developer", "Product Manager", "Designer", "QA Engineer", "Business Analyst"],
-  external: ["Customer", "End User", "Administrator", "Guest User", "Mobile User", "Power User"]
+  external: ["Customer", "End User", "Administrator", "Guest User", "Mobile User", "Power User"],
+  default: ["User", "Customer", "Administrator", "Guest", "Developer"]
 };
