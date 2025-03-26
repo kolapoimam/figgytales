@@ -19,9 +19,12 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, index }) => {
   }, []);
 
   const copyToClipboard = () => {
-    const textToCopy = `${story.title}\n${story.description}\n\nAcceptance Criteria:\n${
-      story.criteria.map((c, i) => `${i + 1}. ${c.description}`).join('\n')
-    }`;
+    const userStoryText = `User Story:\n${story.title}\n${story.description}`;
+    const criteriaText = `Acceptance Criteria:\n${story.criteria
+      .map((c, i) => `${i + 1}. ${c.description}`)
+      .join('\n')}`;
+    
+    const textToCopy = `${userStoryText}\n\n${criteriaText}`;
     
     navigator.clipboard.writeText(textToCopy)
       .then(() => {
