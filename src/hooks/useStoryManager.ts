@@ -20,6 +20,8 @@ export const useStoryManager = (
   useEffect(() => {
     if (stories.length > 0) {
       localStorage.setItem('figgytales_stories', JSON.stringify(stories));
+    } else {
+      localStorage.removeItem('figgytales_stories');
     }
   }, [stories]);
 
@@ -46,7 +48,7 @@ export const useStoryManager = (
       const imageBase64s = await Promise.all(imagePromises);
       
       const aiRequest: AIRequest = {
-        prompt: `Generate ${settings.storyCount} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story should follow the format 'As a [user type], I want to [action], so that [benefit]'. Make sure acceptance criteria are clear and testable.`,
+        prompt: `Generate exactly ${settings.storyCount} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story must follow the format 'As a [user type], I want to [action], so that [benefit]'. Ensure acceptance criteria are clear and testable. Do not include any summaries, introductions, or placeholder text such as 'Here are X user stories'. Return only the user stories.`,
         images: imageBase64s,
         storyCount: settings.storyCount,
         criteriaCount: settings.criteriaCount,
@@ -58,15 +60,31 @@ export const useStoryManager = (
       }
       
       const generatedStories = await generateUserStories(aiRequest);
-      setStories(generatedStories);
+
+      // Filter to ensure only proper user stories are included
+      const filteredStories = generatedStories.filter(story => {
+        return (
+          story.title?.startsWith('As a') && // Proper user story format
+          story.description && // Has a description
+          story.criteria?.length >= settings.criteriaCount && // Has the correct number of criteria
+          !story.title?.includes('Here are') // Exclude summaries
+        );
+      });
+
+      // Validate the number of stories
+      if (filteredStories.length !== settings.storyCount) {
+        throw new Error(`Expected ${settings.storyCount} user stories, but only ${filteredStories.length} valid stories were generated.`);
+      }
+
+      setStories(filteredStories);
       
       if (userId) {
-        await saveGenerationHistory(userId, generatedStories, settings);
+        await saveGenerationHistory(userId, filteredStories, settings);
         
         const newHistoryEntry: GenerationHistory = {
           id: uuidv4(),
           timestamp: new Date(),
-          stories: generatedStories,
+          stories: filteredStories,
           settings: { ...settings }
         };
         
@@ -74,13 +92,13 @@ export const useStoryManager = (
       }
       
       toast.success("Stories generated", {
-        description: `${generatedStories.length} user stories created based on your designs.`
+        description: `${filteredStories.length} user stories created based on your designs.`
       });
       
     } catch (error) {
       console.error('Error generating stories:', error);
       toast.error("Failed to generate stories", {
-        description: "There was an error processing your design files. Please try again later."
+        description: error.message || "There was an error processing your design files. Please try again later."
       });
     } finally {
       setIsGenerating(false);
