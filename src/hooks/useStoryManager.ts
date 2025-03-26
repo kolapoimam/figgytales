@@ -34,90 +34,75 @@ export const useStoryManager = (
     }
     
     setIsGenerating(true);
-    let allValidStories: UserStory[] = [];
-    const maxAttempts = 3; // Maximum number of retries
-    let attempts = 0;
-
     try {
-      while (allValidStories.length < settings.storyCount && attempts < maxAttempts) {
-        const remainingStories = settings.storyCount - allValidStories.length;
-        const imagePromises = files.map(file => {
-          return new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              resolve(reader.result as string);
-            };
-            reader.readAsDataURL(file.file);
-          });
+      const imagePromises = files.map(file => {
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve(reader.result as string);
+          };
+          reader.readAsDataURL(file.file);
         });
-        
-        const imageBase64s = await Promise.all(imagePromises);
-        
-        const aiRequest: AIRequest = {
-          prompt: `Generate exactly ${remainingStories} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story must strictly follow the format 'As a [user type], I want to [action], so that [benefit]'. Ensure each story has a title starting with 'As a', a description, and exactly ${settings.criteriaCount} clear and testable acceptance criteria. Do not include any summaries, introductions, placeholder text such as 'Here are X user stories', or any other content that is not a user story. Return only the ${remainingStories} user stories in the specified format.`,
-          images: imageBase64s,
-          storyCount: remainingStories,
-          criteriaCount: settings.criteriaCount,
-          userType: settings.userType
-        };
-        
-        if (settings.audienceType) {
-          aiRequest.audienceType = settings.audienceType;
+      });
+      
+      const imageBase64s = await Promise.all(imagePromises);
+      
+      const aiRequest: AIRequest = {
+        prompt: `Generate exactly ${settings.storyCount} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story must strictly follow the format 'As a [user type], I want to [action], so that [benefit]'. Ensure each story has a title starting with 'As a', a description, and exactly ${settings.criteriaCount} clear and testable acceptance criteria. Do not include any summaries, introductions, placeholder text such as 'Here are X user stories', or any other content that is not a user story. Return only the ${settings.storyCount} user stories in the specified format.`,
+        images: imageBase64s,
+        storyCount: settings.storyCount,
+        criteriaCount: settings.criteriaCount,
+        userType: settings.userType
+      };
+      
+      if (settings.audienceType) {
+        aiRequest.audienceType = settings.audienceType;
+      }
+      
+      const generatedStories = await generateUserStories(aiRequest);
+
+      // Log the raw AI response for debugging
+      console.log('Raw AI response:', generatedStories);
+
+      // Filter to ensure only proper user stories are included
+      const filteredStories = generatedStories.filter(story => {
+        const isValid = (
+          story.title?.startsWith('As a') && // Proper user story format
+          story.description && // Has a description
+          Array.isArray(story.criteria) && story.criteria.length >= settings.criteriaCount && // Has the correct number of criteria
+          !story.title?.includes('Here are') // Exclude summaries
+        );
+        if (!isValid) {
+          console.log('Filtered out invalid story:', story);
         }
-        
-        const generatedStories = await generateUserStories(aiRequest);
+        return isValid;
+      });
 
-        // Log the raw AI response for debugging
-        console.log(`Attempt ${attempts + 1} - Raw AI response:`, generatedStories);
-
-        // Filter to ensure only proper user stories are included
-        const validStories = generatedStories.filter(story => {
-          const isValid = (
-            story.title?.startsWith('As a') && // Proper user story format
-            story.description && // Has a description
-            Array.isArray(story.criteria) && story.criteria.length === settings.criteriaCount && // Has exactly the requested number of criteria
-            !story.title?.includes('Here are') // Exclude summaries
-          );
-          if (!isValid) {
-            console.log(`Attempt ${attempts + 1} - Filtered out invalid story:`, story);
-          }
-          return isValid;
-        });
-
-        allValidStories = [...allValidStories, ...validStories];
-        attempts++;
-
-        // Log progress
-        console.log(`Attempt ${attempts} - Valid stories so far: ${allValidStories.length}/${settings.storyCount}`);
-      }
-
-      // Final validation
-      if (allValidStories.length < settings.storyCount) {
-        toast.warning(`Expected ${settings.storyCount} user stories, but only ${allValidStories.length} valid stories were generated after ${maxAttempts} attempts.`, {
-          description: "Displaying the available stories. You can try generating more."
-        });
-      } else {
-        toast.success("Stories generated", {
-          description: `${allValidStories.length} user stories created based on your designs.`
+      // Warn if fewer than expected stories are generated, but proceed
+      if (filteredStories.length < settings.storyCount) {
+        toast.warning(`Expected ${settings.storyCount} user stories, but only ${filteredStories.length} valid stories were generated.`, {
+          description: "Displaying the available stories. Please try again if you need more."
         });
       }
 
-      // Ensure we only take the requested number of stories
-      allValidStories = allValidStories.slice(0, settings.storyCount);
-      setStories(allValidStories);
+      setStories(filteredStories);
       
       if (userId) {
-        await saveGenerationHistory(userId, allValidStories, settings);
+        await saveGenerationHistory(userId, filteredStories, settings);
         
         const newHistoryEntry: GenerationHistory = {
           id: uuidv4(),
           timestamp: new Date(),
-          stories: allValidStories,
+          stories: filteredStories,
           settings: { ...settings }
         };
         
         setHistory(prev => [newHistoryEntry, ...prev]);
       }
+      
+      toast.success("Stories generated", {
+        description: `${filteredStories.length} user stories created based on your designs.`
+      });
       
     } catch (error) {
       console.error('Error generating stories:', error);
