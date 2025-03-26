@@ -1,23 +1,10 @@
-
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import Header from '@/components/Header';
 import FileUploader from '@/components/FileUploader';
 import PreviewGrid from '@/components/PreviewGrid';
 import SettingsPanel from '@/components/SettingsPanel';
-import { useFiles } from '@/context/FileContext';
 
 const Index: React.FC = () => {
-  const { stories } = useFiles();
-  const navigate = useNavigate();
-  
-  // Navigate to results page when stories are generated
-  useEffect(() => {
-    if (stories.length > 0) {
-      navigate('/results');
-    }
-  }, [stories, navigate]);
-  
   return (
     <main className="min-h-screen flex flex-col">
       <Header />
