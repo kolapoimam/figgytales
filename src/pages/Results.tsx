@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -24,7 +23,6 @@ const Results: React.FC = () => {
         try {
           const parsedStories = JSON.parse(savedStories);
           if (Array.isArray(parsedStories) && parsedStories.length > 0) {
-            // This will trigger a re-render with the stored stories
             console.log("Loading stories from localStorage");
           }
         } catch (e) {
@@ -92,14 +90,22 @@ const Results: React.FC = () => {
   };
   
   const startOver = () => {
-    // Just clear the files but keep the stories
     clearFiles();
-    navigate('/');
+    navigate('/'); // Already navigates to home page
+  };
+
+  const generateMoreStories = () => {
+    navigate('/'); // Navigates to home page
+  };
+
+  // Assuming Header component accepts an onTitleClick prop
+  const handleTitleClick = () => {
+    navigate('/'); // Navigates to home page when title is clicked
   };
   
   return (
     <main className="min-h-screen flex flex-col">
-      <Header />
+      <Header onTitleClick={handleTitleClick} />
       
       <div className="flex-1 max-w-5xl w-full mx-auto px-4 md:px-6 pb-20">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 animate-fade-in">
@@ -161,11 +167,21 @@ const Results: React.FC = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {stories.map((story, i) => (
-              <StoryCard key={story.id} story={story} index={i} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {stories.map((story, i) => (
+                <StoryCard key={story.id} story={story} index={i} />
+              ))}
+            </div>
+            <div className="mt-8 flex justify-center">
+              <Button 
+                onClick={generateMoreStories}
+                className="w-full sm:w-auto"
+              >
+                Generate More Stories
+              </Button>
+            </div>
+          </>
         )}
       </div>
     </main>
