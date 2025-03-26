@@ -1,4 +1,3 @@
-// pages/Results.tsx (already provided, no changes needed)
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -31,6 +30,7 @@ const Results: React.FC = () => {
   const [isSharing, setIsSharing] = useState(false);
   const [localStories, setLocalStories] = useState<Story[]>([]);
 
+  // Initialize and filter stories
   useEffect(() => {
     const initializeStories = () => {
       if (stories && stories.length > 0) {
@@ -70,6 +70,7 @@ const Results: React.FC = () => {
     initializeStories();
   }, [stories, setStories]);
 
+  // Persist localStories changes
   useEffect(() => {
     if (localStories.length > 0) {
       localStorage.setItem('figgytales_stories', JSON.stringify(localStories));
