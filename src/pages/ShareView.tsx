@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import StoryCard from '@/components/StoryCard';
 import { Button } from '@/components/Button';
@@ -10,24 +11,19 @@ import { supabase } from '@/integrations/supabase/client';
 
 const ShareView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [stories, setStories] = useState<UserStory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
   
   useEffect(() => {
     const fetchSharedStories = async () => {
-      if (!id) {
-        toast.error("Invalid share link");
-        navigate('/');
-        return;
-      }
+      if (!id) return;
       
       try {
         setIsLoading(true);
         const { data, error } = await supabase
           .from('shared_links')
-          .select('stories, expires_at')
+          .select('stories')
           .eq('id', id)
           .single();
         
@@ -35,41 +31,22 @@ const ShareView: React.FC = () => {
           throw error;
         }
         
-        if (!data) {
-          toast.error("Shared link not found");
-          navigate('/');
-          return;
-        }
-
-        // Check if link has expired
-        if (data.expires_at && new Date(data.expires_at) < new Date()) {
-          toast.error("This share link has expired");
-          navigate('/');
-          return;
-        }
-
-        if (data.stories) {
-          // Validate the stories data structure
-          if (Array.isArray(data.stories)) {
-            setStories(data.stories);
-          } else {
-            console.error('Invalid stories data format:', data.stories);
-            toast.error("Invalid stories data format");
-          }
+        if (data && data.stories) {
+          // Cast the JSON data to UserStory[] type
+          setStories(data.stories as unknown as UserStory[]);
         } else {
-          toast.error("No stories found in this share");
+          toast.error("No stories found or link has expired");
         }
       } catch (error) {
         console.error('Error fetching shared stories:', error);
         toast.error("Failed to load shared stories");
-        navigate('/');
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchSharedStories();
-  }, [id, navigate]);
+  }, [id]);
   
   const copyAllToClipboard = () => {
     if (stories.length === 0) return;
@@ -78,7 +55,7 @@ const ShareView: React.FC = () => {
     
     stories.forEach((story, i) => {
       textToCopy += `${story.title}\n${story.description}\n\nAcceptance Criteria:\n${
-        story.criteria?.map((c, j) => `${j + 1}. ${c.description}`).join('\n') || 'No criteria'
+        story.criteria.map((c, j) => `${j + 1}. ${c.description}`).join('\n')
       }`;
       
       if (i < stories.length - 1) {
@@ -104,29 +81,21 @@ const ShareView: React.FC = () => {
       
       <div className="flex-1 max-w-5xl w-full mx-auto px-4 md:px-6 pb-20">
         <div className="flex justify-between items-center mb-8">
-// In your ShareView component
-<Link to="/" replace>  {/* Add replace prop */}
-  <Button variant="outline" className="group">
-    <Home size={16} className="mr-2" />
-    Go Home
-  </Button>
-</Link>
-
-// And for the Go Home button
-<Button onClick={() => navigate('/', { replace: true })} className="mt-4">
-  Go Home
-</Button>
-          
-          {stories.length > 0 && (
-            <Button 
-              variant="secondary" 
-              onClick={copyAllToClipboard}
-              disabled={stories.length === 0}
-            >
-              {isCopied ? <Check size={16} className="mr-2" /> : <ClipboardCopy size={16} className="mr-2" />}
-              {isCopied ? 'Copied' : 'Copy All'}
+          <Link to="/">
+            <Button variant="outline" className="group">
+              <Home size={16} className="mr-2" />
+              Go Home
             </Button>
-          )}
+          </Link>
+          
+          <Button 
+            variant="secondary" 
+            onClick={copyAllToClipboard}
+            disabled={stories.length === 0}
+          >
+            {isCopied ? <Check size={16} className="mr-2" /> : <ClipboardCopy size={16} className="mr-2" />}
+            {isCopied ? 'Copied' : 'Copy All'}
+          </Button>
         </div>
         
         {isLoading ? (
@@ -138,19 +107,12 @@ const ShareView: React.FC = () => {
           <>
             {stories.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No stories found in this share.</p>
-                <Button onClick={() => navigate('/')} className="mt-4">
-                  Go Home
-                </Button>
+                <p className="text-muted-foreground">No stories found or the share link has expired.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {stories.map((story, i) => (
-                  <StoryCard 
-                    key={`${story.id}-${i}`} 
-                    story={story} 
-                    index={i} 
-                  />
+                  <StoryCard key={story.id} story={story} index={i} />
                 ))}
               </div>
             )}

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import StoryCard from '@/components/StoryCard';
@@ -9,27 +10,13 @@ import { toast } from "sonner";
 import HistoryList from '@/components/HistoryList';
 import LoginButton from '@/components/LoginButton';
 
-interface Story {
-  id: string;
-  title: string;
-  description: string;
-  criteria: { description: string }[];
-}
-
 const Results: React.FC = () => {
-  const { 
-    stories, 
-    clearFiles, 
-    createShareLink, 
-    user,
-    setStories // Make sure this is implemented in your context
-  } = useFiles();
-  
+  const { stories, clearFiles, createShareLink, user } = useFiles();
   const navigate = useNavigate();
   const [isCopied, setIsCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
-
-  // Load stories from localStorage if context is empty
+  
+  // Ensure we display stored stories from localStorage if stories array is empty
   useEffect(() => {
     if (stories.length === 0) {
       const savedStories = localStorage.getItem('figgytales_stories');
@@ -37,32 +24,30 @@ const Results: React.FC = () => {
         try {
           const parsedStories = JSON.parse(savedStories);
           if (Array.isArray(parsedStories) && parsedStories.length > 0) {
-            setStories(parsedStories);
+            // This will trigger a re-render with the stored stories
+            console.log("Loading stories from localStorage");
           }
         } catch (e) {
           console.error("Error parsing saved stories:", e);
         }
       }
     }
-  }, [stories.length, setStories]);
-
-  // Persist stories to localStorage when they change
-  useEffect(() => {
-    if (stories.length > 0) {
-      localStorage.setItem('figgytales_stories', JSON.stringify(stories));
-    } else {
-      localStorage.removeItem('figgytales_stories');
-    }
   }, [stories]);
-
-  const copyAllToClipboard = useCallback(() => {
+  
+  const copyAllToClipboard = () => {
     if (stories.length === 0) return;
     
-    const textToCopy = stories.map((story, i) => 
-      `${story.title}\n${story.description}\n\nAcceptance Criteria:\n${
+    let textToCopy = '';
+    
+    stories.forEach((story, i) => {
+      textToCopy += `${story.title}\n${story.description}\n\nAcceptance Criteria:\n${
         story.criteria.map((c, j) => `${j + 1}. ${c.description}`).join('\n')
-      }${i < stories.length - 1 ? '\n\n' + '-'.repeat(40) + '\n\n' : ''}`
-    ).join('');
+      }`;
+      
+      if (i < stories.length - 1) {
+        textToCopy += '\n\n' + '-'.repeat(40) + '\n\n';
+      }
+    });
     
     navigator.clipboard.writeText(textToCopy)
       .then(() => {
@@ -74,21 +59,16 @@ const Results: React.FC = () => {
         console.error('Failed to copy: ', err);
         toast.error("Failed to copy to clipboard");
       });
-  }, [stories]);
-
-  const downloadAsCsv = useCallback(() => {
+  };
+  
+  const downloadAsCsv = () => {
     if (stories.length === 0) return;
     
     let csvContent = "Title,Description,Acceptance Criteria\n";
     
     stories.forEach(story => {
-      const criteriaText = story.criteria.map(c => 
-        c.description.replace(/"/g, '""')
-      ).join(' | ');
-      
-      csvContent += `"${story.title.replace(/"/g, '""')}","${
-        story.description.replace(/"/g, '""')
-      }","${criteriaText}"\n`;
+      const criteriaText = story.criteria.map(c => c.description.replace(/"/g, '""')).join(' | ');
+      csvContent += `"${story.title}","${story.description.replace(/"/g, '""')}","${criteriaText}"\n`;
     });
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -96,29 +76,27 @@ const Results: React.FC = () => {
     const link = document.createElement('a');
     link.setAttribute('href', url);
     link.setAttribute('download', 'figgytales-stories.csv');
+    link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
     toast.success("CSV file downloaded");
-  }, [stories]);
-
+  };
+  
   const handleShareLink = async () => {
     setIsSharing(true);
-    try {
-      await createShareLink();
-    } finally {
-      setIsSharing(false);
-    }
+    await createShareLink();
+    setIsSharing(false);
   };
   
   const startOver = () => {
+    // Just clear the files but keep the stories
     clearFiles();
-    localStorage.removeItem('figgytales_stories');
-    navigate('/', { replace: true });
+    navigate('/');
   };
-
+  
   return (
     <main className="min-h-screen flex flex-col">
       <Header />
@@ -176,7 +154,7 @@ const Results: React.FC = () => {
           <div className="text-center py-20">
             <p className="text-muted-foreground">No stories generated yet. Upload design files and generate stories.</p>
             <Button 
-              onClick={() => navigate('/', { replace: true })}
+              onClick={() => navigate('/')}
               className="mt-4"
             >
               Go to Upload
@@ -185,7 +163,7 @@ const Results: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {stories.map((story, i) => (
-              <StoryCard key={`${story.id}-${i}`} story={story} index={i} />
+              <StoryCard key={story.id} story={story} index={i} />
             ))}
           </div>
         )}
