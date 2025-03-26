@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import { DesignFile, StorySettings, UserStory, GenerationHistory, ShareLink, User, AIRequest, AIResponse } from '@/lib/types';
 import { toast } from "sonner";
@@ -164,13 +163,12 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
           
           if (user) {
             try {
-              // Fix the type issues with the history insert
               await supabase
                 .from('history')
                 .insert({
                   user_id: user.id,
-                  settings: settings,
-                  stories: data.stories,
+                  settings: settings as any,
+                  stories: data.stories as any,
                   created_at: new Date().toISOString()
                 });
             } catch (error) {
@@ -207,13 +205,12 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     try {
       const shareId = uuidv4();
       if (user) {
-        // Fix the type issues with the shared_links insert
         await supabase
           .from('shared_links')
           .insert({
             id: shareId,
             user_id: user.id,
-            stories: stories,
+            stories: stories as any,
             expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
           });
       }
@@ -273,7 +270,6 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     
     try {
-      // Fix the type issues with the history select
       const { data, error } = await supabase
         .from('history')
         .select('*')
@@ -286,8 +282,8 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
         const formattedHistory: GenerationHistory[] = data.map(item => ({
           id: item.id,
           timestamp: new Date(item.created_at),
-          stories: item.stories,
-          settings: item.settings
+          stories: item.stories as unknown as UserStory[],
+          settings: item.settings as unknown as StorySettings
         }));
         
         setHistory(formattedHistory);

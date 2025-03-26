@@ -32,7 +32,8 @@ const ShareView: React.FC = () => {
         }
         
         if (data && data.stories) {
-          setStories(data.stories);
+          // Cast the JSON data to UserStory[] type
+          setStories(data.stories as unknown as UserStory[]);
         } else {
           toast.error("No stories found or link has expired");
         }
