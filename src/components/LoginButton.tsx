@@ -1,38 +1,64 @@
-
-import React from 'react';
+// components/LoginButton.tsx
+import React, { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/Button';
-import { useFiles } from '@/context/FileContext';
-import { LogIn, LogOut } from 'lucide-react';
+import SignIn from '@/components/SignIn';
+import SignUp from '@/components/SignUp';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const LoginButton: React.FC = () => {
-  const { user, login, logout } = useFiles();
+  const { user, logout } = useAuth();
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const [isSignUpOpen, setIsSignUpOpen] = useState(false);
 
-  if (user) {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => logout()}
-        className="flex items-center gap-2"
-      >
-        <LogOut size={16} />
-        <span>Logout</span>
-      </Button>
-    );
-  }
+  const handleSignInSuccess = () => {
+    setIsSignInOpen(false);
+  };
+
+  const handleSignUpSuccess = () => {
+    setIsSignUpOpen(false);
+  };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => login('google')}
-        className="flex items-center gap-2"
-      >
-        <LogIn size={16} />
-        <span>Sign in with Google</span>
-      </Button>
-    </div>
+    <>
+      {user ? (
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">Hello, {user.name}</span>
+          <Button variant="outline" onClick={logout}>
+            Sign Out
+          </Button>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <Button onClick={() => setIsSignInOpen(true)}>
+            Sign In
+          </Button>
+          <Button variant="outline" onClick={() => setIsSignUpOpen(true)}>
+            Sign Up
+          </Button>
+        </div>
+      )}
+
+      {/* Sign In Dialog */}
+      <Dialog open={isSignInOpen} onOpenChange={setIsSignInOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sign In to Your Account</DialogTitle>
+          </DialogHeader>
+          <SignIn onSuccess={handleSignInSuccess} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Sign Up Dialog */}
+      <Dialog open={isSignUpOpen} onOpenChange={setIsSignUpOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create an Account</DialogTitle>
+          </DialogHeader>
+          <SignUp onSuccess={handleSignUpSuccess} />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
