@@ -22,7 +22,7 @@ const Results: React.FC = () => {
     clearFiles, 
     createShareLink, 
     user,
-    setStories // Using the new explicit setter from FileContext
+    setStories 
   } = useFiles();
   
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ const Results: React.FC = () => {
           const savedStories = JSON.parse(savedStoriesJson);
           if (Array.isArray(savedStories) && savedStories.length > 0) {
             setLocalStories(savedStories);
-            setStories(savedStories); // Sync context
+            setStories(savedStories);
             return;
           }
         } catch (error) {
@@ -63,10 +63,10 @@ const Results: React.FC = () => {
   useEffect(() => {
     if (localStories.length > 0) {
       localStorage.setItem('figgytales_stories', JSON.stringify(localStories));
-      setStories(localStories); // Keep context in sync
+      setStories(localStories);
     } else {
       localStorage.removeItem('figgytales_stories');
-      setStories([]); // Clear context
+      setStories([]);
     }
   }, [localStories, setStories]);
 
@@ -125,9 +125,13 @@ const Results: React.FC = () => {
   };
   
   const startOver = () => {
-    clearFiles(); // Clears files and stories from context and localStorage
-    setLocalStories([]); // Clear local state too
-    navigate('/'); // Navigate to landing page (Index)
+    clearFiles();
+    setLocalStories([]);
+    navigate('/');
+  };
+
+  const generateMore = () => {
+    navigate('/'); // Simply navigate to Index page without clearing
   };
 
   return (
@@ -198,6 +202,18 @@ const Results: React.FC = () => {
             {localStories.map((story, i) => (
               <StoryCard key={story.id} story={story} index={i} />
             ))}
+          </div>
+        )}
+
+        {/* Generate More Button */}
+        {localStories.length > 0 && (
+          <div className="mt-8 flex justify-center">
+            <Button 
+              onClick={generateMore}
+              className="w-full sm:w-auto"
+            >
+              Generate More
+            </Button>
           </div>
         )}
       </div>
