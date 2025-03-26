@@ -34,7 +34,6 @@ const Results: React.FC = () => {
   useEffect(() => {
     const initializeStories = () => {
       if (stories && stories.length > 0) {
-        // Filter out non-user-story items
         const filteredStories = stories.filter(story => {
           const isProperStory = story.title?.startsWith('As a') && story.description && story.criteria?.length > 0;
           const isNotSummary = !story.title?.includes('Here are');
@@ -210,11 +209,18 @@ const Results: React.FC = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {localStories.map((story, i) => (
-              <StoryCard key={story.id} story={story} index={i} />
-            ))}
-          </div>
+          <>
+            {localStories.length < 4 && (
+              <div className="mb-6 text-center text-muted-foreground">
+                <p>Only {localStories.length} of 4 requested stories were generated. Click "Generate More" to try again.</p>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {localStories.map((story, i) => (
+                <StoryCard key={story.id} story={story} index={i} />
+              ))}
+            </div>
+          </>
         )}
 
         {localStories.length > 0 && (
