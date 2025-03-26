@@ -1,4 +1,3 @@
-// pages/Results.tsx (already provided, no changes needed)
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
