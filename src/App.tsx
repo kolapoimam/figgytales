@@ -1,10 +1,11 @@
+
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { FileProvider, useFiles } from "./context/FileContext";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { FileProvider } from "./context/FileContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import Index from "./pages/Index";
 import Results from "./pages/Results";
@@ -13,27 +14,6 @@ import ShareView from "./pages/ShareView";
 
 // Create a client
 const queryClient = new QueryClient();
-
-const AppRoutes = () => {
-  const { stories } = useFiles();
-  const location = useLocation();
-
-  return (
-    <Routes>
-      <Route 
-        path="/" 
-        element={
-          stories.length > 0 && location.pathname === '/' 
-            ? <Navigate to="/results" replace /> 
-            : <Index />
-        } 
-      />
-      <Route path="/results" element={<Results />} />
-      <Route path="/share/:id" element={<ShareView />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-};
 
 const App: React.FC = () => {
   return (
@@ -49,7 +29,12 @@ const App: React.FC = () => {
               richColors
             />
             <BrowserRouter>
-              <AppRoutes />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/results" element={<Results />} />
+                <Route path="/share/:id" element={<ShareView />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
             </BrowserRouter>
           </FileProvider>
         </ThemeProvider>

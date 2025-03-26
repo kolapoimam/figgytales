@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -7,19 +8,13 @@ import SettingsPanel from '@/components/SettingsPanel';
 import { useFiles } from '@/context/FileContext';
 
 const Index: React.FC = () => {
-  const { stories, clearFiles } = useFiles();
+  const { stories } = useFiles();
   const navigate = useNavigate();
   
-  // Clear any existing stories when component mounts
-  useEffect(() => {
-    clearFiles();
-    localStorage.removeItem('figgytales_stories');
-  }, [clearFiles]);
-
-  // Navigate to results page only if we have stories and came from generation
+  // Navigate to results page when stories are generated
   useEffect(() => {
     if (stories.length > 0) {
-      navigate('/results', { replace: true });
+      navigate('/results');
     }
   }, [stories, navigate]);
   

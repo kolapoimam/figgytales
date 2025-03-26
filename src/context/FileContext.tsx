@@ -1,4 +1,5 @@
-import React, { createContext, useContext, ReactNode, useEffect, useCallback } from 'react';
+
+import React, { createContext, useContext, ReactNode, useEffect } from 'react';
 import { DesignFile, StorySettings, UserStory, GenerationHistory, User } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useFileManager } from '@/hooks/useFileManager';
@@ -21,7 +22,6 @@ interface FileContextType {
   logout: () => Promise<void>;
   getHistory: () => Promise<void>;
   clearStoredStories: () => void;
-  setStories: (stories: UserStory[]) => void; // Added for direct stories manipulation
 }
 
 const FileContext = createContext<FileContextType | undefined>(undefined);
@@ -36,7 +36,7 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     addFiles, 
     removeFile, 
     updateSettings, 
-    clearFiles: clearFileManagerFiles 
+    clearFiles 
   } = useFileManager();
   
   const { 
@@ -45,40 +45,15 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     generateStories, 
     createShareLink, 
     getHistory,
-    clearStoredStories,
-    setStories: setStoryManagerStories
+    clearStoredStories
   } = useStoryManager(files, settings, user?.id || null, setIsGenerating);
-
-  // Comprehensive clear function
-  const clearFiles = useCallback(() => {
-    clearFileManagerFiles();
-    clearStoredStories();
-    localStorage.removeItem('figgytales_stories');
-    localStorage.removeItem('figgytales_files');
-    localStorage.removeItem('figgytales_settings');
-  }, [clearFileManagerFiles, clearStoredStories]);
-
-  // Set stories directly (for restoring from localStorage)
-  const setStories = useCallback((newStories: UserStory[]) => {
-    setStoryManagerStories(newStories);
-  }, [setStoryManagerStories]);
 
   // Load history when user changes
   useEffect(() => {
     if (user) {
       getHistory();
-    } else {
-      // Clear user-specific data when logging out
-      clearStoredStories();
     }
-  }, [user, getHistory, clearStoredStories]);
-
-  // Persist stories to localStorage when they change
-  useEffect(() => {
-    if (stories.length > 0) {
-      localStorage.setItem('figgytales_stories', JSON.stringify(stories));
-    }
-  }, [stories]);
+  }, [user, getHistory]);
 
   return (
     <FileContext.Provider value={{
@@ -97,8 +72,7 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
       login,
       logout,
       getHistory,
-      clearStoredStories,
-      setStories // Expose setStories to consumers
+      clearStoredStories
     }}>
       {children}
     </FileContext.Provider>

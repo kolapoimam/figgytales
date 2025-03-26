@@ -21,7 +21,7 @@ const Header: React.FC<HeaderProps> = ({
       
       <div className="flex flex-col items-center text-center">
         <Link to="/" className="relative group">
-          <h1 className="text-4xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600 transition-all duration-300 my-0 py-[8px] md:text-5xl">
+          <h1 className="text-4xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600 transition-all duration-300 py-[10px] md:text-5xl">
             FiggyTales
           </h1>
           <span className="absolute -bottom-0.5 left-0 w-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-600 group-hover:w-full transition-all duration-300"></span>
