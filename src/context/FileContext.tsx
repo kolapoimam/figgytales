@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useCallback, useState } from 'react';
 import { DesignFile, StorySettings, UserStory, GenerationHistory, User } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useFileManager } from '@/hooks/useFileManager';
@@ -11,7 +11,7 @@ interface FileContextType {
   user: User | null;
   history: GenerationHistory[];
   isGenerating: boolean;
-  addFiles: (newFiles: File[]) => void;
+  addFiles: (newFiles: File[]) => Promise<void>;
   removeFile: (id: string) => void;
   updateSettings: (newSettings: Partial<StorySettings>) => void;
   clearFiles: () => void;
@@ -21,19 +21,21 @@ interface FileContextType {
   logout: () => Promise<void>;
   getHistory: () => Promise<void>;
   clearStoredStories: () => void;
-  setStories: (stories: UserStory[]) => void; // Added for direct stories manipulation
+  setStories: (stories: UserStory[]) => void;
 }
 
 const FileContext = createContext<FileContextType | undefined>(undefined);
 
 export const FileProvider = ({ children }: { children: ReactNode }) => {
   const { user, login, logout } = useAuth();
+  const [previewGeneration, setPreviewGeneration] = useState<boolean>(false);
+  
   const { 
     files, 
     settings, 
     isGenerating, 
     setIsGenerating,
-    addFiles, 
+    addFiles: addFilesManager, 
     removeFile, 
     updateSettings, 
     clearFiles: clearFileManagerFiles 
@@ -49,16 +51,38 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     setStories: setStoryManagerStories
   } = useStoryManager(files, settings, user?.id || null, setIsGenerating);
 
+  // Enhanced addFiles with preview generation
+  const addFiles = useCallback(async (newFiles: File[]) => {
+    setPreviewGeneration(true);
+    try {
+      await addFilesManager(newFiles.map(file => ({
+        ...file,
+        previewUrl: URL.createObjectURL(file) // Generate preview URLs
+      })));
+    } catch (error) {
+      console.error('Error adding files:', error);
+      throw error;
+    } finally {
+      setPreviewGeneration(false);
+    }
+  }, [addFilesManager]);
+
   // Comprehensive clear function
   const clearFiles = useCallback(() => {
+    // Revoke object URLs before clearing
+    files.forEach(file => {
+      if (file.previewUrl) {
+        URL.revokeObjectURL(file.previewUrl);
+      }
+    });
     clearFileManagerFiles();
     clearStoredStories();
     localStorage.removeItem('figgytales_stories');
     localStorage.removeItem('figgytales_files');
     localStorage.removeItem('figgytales_settings');
-  }, [clearFileManagerFiles, clearStoredStories]);
+  }, [clearFileManagerFiles, clearStoredStories, files]);
 
-  // Set stories directly (for restoring from localStorage)
+  // Set stories directly
   const setStories = useCallback((newStories: UserStory[]) => {
     setStoryManagerStories(newStories);
   }, [setStoryManagerStories]);
@@ -68,17 +92,30 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     if (user) {
       getHistory();
     } else {
-      // Clear user-specific data when logging out
       clearStoredStories();
     }
   }, [user, getHistory, clearStoredStories]);
 
-  // Persist stories to localStorage when they change
+  // Persist data to localStorage
   useEffect(() => {
     if (stories.length > 0) {
       localStorage.setItem('figgytales_stories', JSON.stringify(stories));
     }
-  }, [stories]);
+    if (files.length > 0) {
+      localStorage.setItem('figgytales_files', JSON.stringify(files));
+    }
+  }, [stories, files]);
+
+  // Cleanup object URLs on unmount
+  useEffect(() => {
+    return () => {
+      files.forEach(file => {
+        if (file.previewUrl) {
+          URL.revokeObjectURL(file.previewUrl);
+        }
+      });
+    };
+  }, [files]);
 
   return (
     <FileContext.Provider value={{
@@ -87,7 +124,7 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
       stories,
       user,
       history,
-      isGenerating,
+      isGenerating: isGenerating || previewGeneration,
       addFiles,
       removeFile,
       updateSettings,
@@ -98,7 +135,7 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
       logout,
       getHistory,
       clearStoredStories,
-      setStories // Expose setStories to consumers
+      setStories
     }}>
       {children}
     </FileContext.Provider>
