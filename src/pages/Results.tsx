@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import StoryCard from '@/components/StoryCard';
@@ -9,52 +9,83 @@ import { toast } from "sonner";
 import HistoryList from '@/components/HistoryList';
 import LoginButton from '@/components/LoginButton';
 
+// Define a type for Story to ensure type safety
+interface Story {
+  id: string;
+  title: string;
+  description: string;
+  criteria: { description: string }[];
+}
+
 const Results: React.FC = () => {
-  const { stories, clearFiles, createShareLink, user, setStories } = useFiles();
+  const { 
+    stories, 
+    clearFiles, 
+    createShareLink, 
+    user,
+    // Assuming you'll add these methods to your context
+    setStoriesInContext 
+  } = useFiles();
+  
   const navigate = useNavigate();
   const [isCopied, setIsCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
-  
-  // Ensure we display stored stories from localStorage if stories array is empty
+  const [localStories, setLocalStories] = useState<Story[]>([]);
+
+  // Comprehensive initialization and persistence logic
   useEffect(() => {
-    if (stories.length === 0) {
-      const savedStories = localStorage.getItem('figgytales_stories');
-      if (savedStories) {
+    // Priority order:
+    // 1. Context stories (most recent)
+    // 2. Local storage stories (fallback)
+    // 3. Empty array
+    const initializeStories = () => {
+      if (stories && stories.length > 0) {
+        // If context has stories, use those
+        setLocalStories(stories);
+        localStorage.setItem('figgytales_stories', JSON.stringify(stories));
+        return;
+      }
+
+      // Try to load from localStorage
+      const savedStoriesJson = localStorage.getItem('figgytales_stories');
+      if (savedStoriesJson) {
         try {
-          const parsedStories = JSON.parse(savedStories);
-          if (Array.isArray(parsedStories) && parsedStories.length > 0) {
-            // Update stories in context if localStorage has stories
-            setStories(parsedStories);
-            console.log("Loading stories from localStorage");
+          const savedStories = JSON.parse(savedStoriesJson);
+          if (Array.isArray(savedStories) && savedStories.length > 0) {
+            // Restore stories from localStorage
+            setLocalStories(savedStories);
+            
+            // Update context (in case it was cleared)
+            setStoriesInContext(savedStories);
+            return;
           }
-        } catch (e) {
-          console.error("Error parsing saved stories:", e);
+        } catch (error) {
+          console.error('Failed to parse saved stories:', error);
         }
       }
-    }
-  }, [stories, setStories]);
-  
-  // Save stories to localStorage whenever stories change
+
+      // If no stories found, set to empty array
+      setLocalStories([]);
+    };
+
+    initializeStories();
+  }, [stories, setStoriesInContext]);
+
+  // Additional persistence mechanism
   useEffect(() => {
-    if (stories.length > 0) {
-      localStorage.setItem('figgytales_stories', JSON.stringify(stories));
+    if (localStories.length > 0) {
+      localStorage.setItem('figgytales_stories', JSON.stringify(localStories));
     }
-  }, [stories]);
-  
-  const copyAllToClipboard = () => {
-    if (stories.length === 0) return;
+  }, [localStories]);
+
+  const copyAllToClipboard = useCallback(() => {
+    if (localStories.length === 0) return;
     
-    let textToCopy = '';
-    
-    stories.forEach((story, i) => {
-      textToCopy += `${story.title}\n${story.description}\n\nAcceptance Criteria:\n${
+    let textToCopy = localStories.map((story, i) => 
+      `${story.title}\n${story.description}\n\nAcceptance Criteria:\n${
         story.criteria.map((c, j) => `${j + 1}. ${c.description}`).join('\n')
-      }`;
-      
-      if (i < stories.length - 1) {
-        textToCopy += '\n\n' + '-'.repeat(40) + '\n\n';
-      }
-    });
+      }${i < localStories.length - 1 ? '\n\n' + '-'.repeat(40) + '\n\n' : ''}`
+    ).join('');
     
     navigator.clipboard.writeText(textToCopy)
       .then(() => {
@@ -66,16 +97,19 @@ const Results: React.FC = () => {
         console.error('Failed to copy: ', err);
         toast.error("Failed to copy to clipboard");
       });
-  };
-  
-  const downloadAsCsv = () => {
-    if (stories.length === 0) return;
+  }, [localStories]);
+
+  const downloadAsCsv = useCallback(() => {
+    if (localStories.length === 0) return;
     
     let csvContent = "Title,Description,Acceptance Criteria\n";
     
-    stories.forEach(story => {
-      const criteriaText = story.criteria.map(c => c.description.replace(/"/g, '""')).join(' | ');
-      csvContent += `"${story.title}","${story.description.replace(/"/g, '""')}","${criteriaText}"\n`;
+    localStories.forEach(story => {
+      const criteriaText = story.criteria.map(c => 
+        c.description.replace(/"/g, '""')
+      ).join(' | ');
+      
+      csvContent += `"${story.title.replace(/"/g, '""')}","${story.description.replace(/"/g, '""')}","${criteriaText}"\n`;
     });
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -90,8 +124,8 @@ const Results: React.FC = () => {
     URL.revokeObjectURL(url);
     
     toast.success("CSV file downloaded");
-  };
-  
+  }, [localStories]);
+
   const handleShareLink = async () => {
     setIsSharing(true);
     await createShareLink();
@@ -99,7 +133,6 @@ const Results: React.FC = () => {
   };
   
   const startOver = () => {
-    // Just clear the files but keep the stories
     clearFiles();
     navigate('/');
   };
@@ -123,7 +156,7 @@ const Results: React.FC = () => {
             <Button 
               variant="secondary" 
               onClick={copyAllToClipboard}
-              disabled={stories.length === 0}
+              disabled={localStories.length === 0}
             >
               {isCopied ? <Check size={16} className="mr-2" /> : <ClipboardCopy size={16} className="mr-2" />}
               {isCopied ? 'Copied' : 'Copy All'}
@@ -132,7 +165,7 @@ const Results: React.FC = () => {
             <Button
               variant="secondary"
               onClick={handleShareLink}
-              disabled={isSharing || stories.length === 0}
+              disabled={isSharing || localStories.length === 0}
             >
               <Share2 size={16} className="mr-2" />
               Share
@@ -140,7 +173,7 @@ const Results: React.FC = () => {
             
             <Button 
               onClick={downloadAsCsv}
-              disabled={stories.length === 0}
+              disabled={localStories.length === 0}
             >
               <Download size={16} className="mr-2" />
               Download CSV
@@ -157,7 +190,7 @@ const Results: React.FC = () => {
         
         {user && <HistoryList className="mb-8" />}
         
-        {stories.length === 0 ? (
+        {localStories.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-muted-foreground">No stories generated yet. Upload design files and generate stories.</p>
             <Button 
@@ -169,7 +202,7 @@ const Results: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {stories.map((story, i) => (
+            {localStories.map((story, i) => (
               <StoryCard key={story.id} story={story} index={i} />
             ))}
           </div>
