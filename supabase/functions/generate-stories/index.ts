@@ -8,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Google Generative AI API key from environment - set directly in the code for this assignment
+// Google Generative AI API key from environment
 const GOOGLE_AI_API_KEY = 'AIzaSyCcKtpIVaG0weD7ZIawyLFZMl8kojOM28Q';
 
 serve(async (req: Request) => {
@@ -27,13 +27,21 @@ serve(async (req: Request) => {
     
     console.log(`Generating ${requestData.storyCount} user stories with ${requestData.criteriaCount} acceptance criteria each`);
     console.log(`Number of images: ${requestData.images.length}`);
+    console.log(`Audience: ${requestData.audienceType}, User Type: ${requestData.userType}`);
+
+    // Prepare the user prompt with audience and user type context
+    const userPrompt = requestData.prompt || 
+      `Generate ${requestData.storyCount} user stories with ${requestData.criteriaCount} acceptance criteria each based on these design screens.` +
+      `The stories should be written for ${requestData.audienceType} audience and focus on ${requestData.userType} users. ` +
+      `Each user story should follow the format 'As a [user type], I want to [action], so that [benefit]'. ` +
+      `Make sure acceptance criteria are clear and testable.`;
 
     // Prepare the request for Google AI API
     const content = [
       {
         role: "user",
         parts: [
-          { text: requestData.prompt || `Generate ${requestData.storyCount} user stories with ${requestData.criteriaCount} acceptance criteria each based on these design screens.` },
+          { text: userPrompt },
           ...requestData.images.map(image => ({
             inline_data: {
               mime_type: image.split(';')[0].split(':')[1] || 'image/jpeg',
@@ -44,9 +52,9 @@ serve(async (req: Request) => {
       }
     ];
 
-    // Call Google AI API (Gemini Pro Vision)
+    // Call Google AI API (Gemini 1.5 Flash model - latest model that supports vision)
     const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=" + GOOGLE_AI_API_KEY,
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GOOGLE_AI_API_KEY,
       {
         method: "POST",
         headers: {

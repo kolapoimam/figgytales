@@ -1,10 +1,14 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useFiles } from '@/context/FileContext';
 import { Button } from '@/components/Button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Settings, Wand2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { USER_TYPES } from '@/lib/types';
 
 const SettingsPanel: React.FC = () => {
   const { settings, updateSettings, files, generateStories, isGenerating } = useFiles();
@@ -30,6 +34,27 @@ const SettingsPanel: React.FC = () => {
       updateSettings({ criteriaCount: value });
     }
   };
+
+  const handleAudienceTypeChange = (value: string) => {
+    // When audience type changes, reset the user type to first item in the corresponding list
+    const newUserType = USER_TYPES[value as keyof typeof USER_TYPES][0];
+    updateSettings({ 
+      audienceType: value,
+      userType: newUserType
+    });
+  };
+  
+  const handleUserTypeChange = (value: string) => {
+    updateSettings({ userType: value });
+  };
+  
+  useEffect(() => {
+    // Ensure userType is valid whenever audienceType changes
+    const validUserTypes = USER_TYPES[settings.audienceType as keyof typeof USER_TYPES];
+    if (!validUserTypes.includes(settings.userType)) {
+      updateSettings({ userType: validUserTypes[0] });
+    }
+  }, [settings.audienceType]);
   
   return (
     <div className="mt-12 bg-secondary/50 rounded-xl p-6 animate-slide-up border border-border">
@@ -93,6 +118,45 @@ const SettingsPanel: React.FC = () => {
             onValueChange={handleCriteriaCountChange}
             className="py-2"
           />
+        </div>
+        
+        {/* New audience type selection */}
+        <div className="space-y-4">
+          <label className="text-sm font-medium">Audience Type</label>
+          <RadioGroup 
+            value={settings.audienceType} 
+            onValueChange={handleAudienceTypeChange}
+            className="flex space-x-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="internal" id="internal" />
+              <Label htmlFor="internal">Internal</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="external" id="external" />
+              <Label htmlFor="external">External</Label>
+            </div>
+          </RadioGroup>
+        </div>
+        
+        {/* New user type dropdown */}
+        <div className="space-y-4">
+          <label htmlFor="userType" className="text-sm font-medium">User Type</label>
+          <Select 
+            value={settings.userType} 
+            onValueChange={handleUserTypeChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a user type" />
+            </SelectTrigger>
+            <SelectContent>
+              {USER_TYPES[settings.audienceType as keyof typeof USER_TYPES].map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         
         <div className="pt-4">

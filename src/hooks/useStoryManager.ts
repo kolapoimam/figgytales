@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { toast } from "sonner";
 import { UserStory, GenerationHistory, StorySettings, AIRequest } from '@/lib/types';
@@ -40,7 +39,9 @@ export const useStoryManager = (
         prompt: `Generate ${settings.storyCount} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story should follow the format 'As a [user type], I want to [action], so that [benefit]'. Make sure acceptance criteria are clear and testable.`,
         images: imageBase64s,
         storyCount: settings.storyCount,
-        criteriaCount: settings.criteriaCount
+        criteriaCount: settings.criteriaCount,
+        audienceType: settings.audienceType,
+        userType: settings.userType
       };
       
       const generatedStories = await generateUserStories(aiRequest);
@@ -132,7 +133,7 @@ export const useStoryManager = (
     stories,
     history,
     generateStories,
-    createShareLink,
+    createShareLink: createShareLink,
     getHistory,
     setStories,
     setHistory

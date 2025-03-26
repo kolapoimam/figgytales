@@ -8,6 +8,8 @@ export const useFileManager = () => {
   const [settings, setSettings] = useState<StorySettings>({
     storyCount: 3,
     criteriaCount: 3,
+    audienceType: "external", // default to external audience
+    userType: "End User" // default user type
   });
   const [isGenerating, setIsGenerating] = useState(false);
 
