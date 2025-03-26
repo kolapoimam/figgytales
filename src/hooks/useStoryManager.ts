@@ -48,7 +48,7 @@ export const useStoryManager = (
       const imageBase64s = await Promise.all(imagePromises);
       
       const aiRequest: AIRequest = {
-        prompt: `Generate exactly ${settings.storyCount} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story must follow the format 'As a [user type], I want to [action], so that [benefit]'. Ensure acceptance criteria are clear and testable. Do not include any summaries, introductions, or placeholder text such as 'Here are X user stories'. Return only the user stories.`,
+        prompt: `Generate exactly ${settings.storyCount} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story must strictly follow the format 'As a [user type], I want to [action], so that [benefit]'. Ensure each story has a title starting with 'As a', a description, and exactly ${settings.criteriaCount} clear and testable acceptance criteria. Do not include any summaries, introductions, placeholder text such as 'Here are X user stories', or any other content that is not a user story. Return only the ${settings.storyCount} user stories in the specified format.`,
         images: imageBase64s,
         storyCount: settings.storyCount,
         criteriaCount: settings.criteriaCount,
@@ -61,19 +61,28 @@ export const useStoryManager = (
       
       const generatedStories = await generateUserStories(aiRequest);
 
+      // Log the raw AI response for debugging
+      console.log('Raw AI response:', generatedStories);
+
       // Filter to ensure only proper user stories are included
       const filteredStories = generatedStories.filter(story => {
-        return (
+        const isValid = (
           story.title?.startsWith('As a') && // Proper user story format
           story.description && // Has a description
-          story.criteria?.length >= settings.criteriaCount && // Has the correct number of criteria
+          Array.isArray(story.criteria) && story.criteria.length >= settings.criteriaCount && // Has the correct number of criteria
           !story.title?.includes('Here are') // Exclude summaries
         );
+        if (!isValid) {
+          console.log('Filtered out invalid story:', story);
+        }
+        return isValid;
       });
 
-      // Validate the number of stories
-      if (filteredStories.length !== settings.storyCount) {
-        throw new Error(`Expected ${settings.storyCount} user stories, but only ${filteredStories.length} valid stories were generated.`);
+      // Warn if fewer than expected stories are generated, but proceed
+      if (filteredStories.length < settings.storyCount) {
+        toast.warning(`Expected ${settings.storyCount} user stories, but only ${filteredStories.length} valid stories were generated.`, {
+          description: "Displaying the available stories. Please try again if you need more."
+        });
       }
 
       setStories(filteredStories);
