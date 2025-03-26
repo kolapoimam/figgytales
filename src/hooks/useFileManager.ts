@@ -5,9 +5,9 @@ import { toast } from "sonner";
 export const useFileManager = () => {
   const [files, setFiles] = useState<DesignFile[]>([]);
   const [settings, setSettings] = useState<StorySettings>({
-    storyCount: 3,
-    criteriaCount: 3,
-    userType: "User" // Default user type without requiring audience type
+    storyCount: 4, // Updated to 4 to match user expectation
+    criteriaCount: 4, // Updated to 4 to match screenshot
+    userType: "User"
   });
   const [isGenerating, setIsGenerating] = useState(false);
 
