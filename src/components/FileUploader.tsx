@@ -77,8 +77,11 @@ const FileUploader: React.FC = () => {
         </div>
         
         <div className="flex flex-wrap gap-4 justify-center">
-          <Button 
-            onClick={open} 
+        <Button 
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent triggering parent dropzone click event
+              open();
+            }} 
             type="button"
             variant="default"
             className="mt-2"
