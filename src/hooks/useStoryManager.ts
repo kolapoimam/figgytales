@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { UserStory, GenerationHistory, StorySettings, AIRequest } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { generateUserStories, saveGenerationHistory, createStoryShareLink, fetchUserHistory } from '@/services/fileService';
-import { useNavigate } from 'react-router-dom';
 
 export const useStoryManager = (
   files: any[], 
@@ -17,7 +16,6 @@ export const useStoryManager = (
   });
   
   const [history, setHistory] = useState<GenerationHistory[]>([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (stories.length > 0) {
@@ -26,7 +24,6 @@ export const useStoryManager = (
   }, [stories]);
 
   const generateStories = useCallback(async () => {
-    console.log('useStoryManager generateStories called with:', { files, settings, userId });
     if (files.length === 0) {
       toast.error("No design files", {
         description: "Please upload at least one design file before generating stories."
@@ -37,25 +34,19 @@ export const useStoryManager = (
     setIsGenerating(true);
     try {
       const imagePromises = files.map(file => {
-        return new Promise<string>((resolve, reject) => {
+        return new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onloadend = () => {
-            console.log('FileReader result for file:', file.file.name, reader.result);
             resolve(reader.result as string);
-          };
-          reader.onerror = (error) => {
-            console.error('FileReader error for file:', file.file.name, error);
-            reject(error);
           };
           reader.readAsDataURL(file.file);
         });
       });
       
       const imageBase64s = await Promise.all(imagePromises);
-      console.log('Base64 images:', imageBase64s);
       
       const aiRequest: AIRequest = {
-        prompt: `Based on the provided design screens, generate exactly ${settings.storyCount} user stories, each with exactly ${settings.criteriaCount} acceptance criteria. Each user story must be granular, clear, and directly inspired by the visual elements, interactions, or features visible in the design screens. Use the format: 'As a ${settings.userType}, I want to [specific action based on the design], so that [clear, user-focused benefit]'. Ensure the acceptance criteria are simple, testable, and directly related to the user story, focusing on specific behaviors or outcomes (e.g., 'Given [context], when [action], then [expected result]'). Do not include any summaries, introductions, placeholders, or additional text beyond the user stories and their acceptance criteria.`,
+        prompt: `Based on the provided design screens, generate exactly ${settings.storyCount} user stories, each with exactly ${settings.criteriaCount} acceptance criteria. Each user story must be granular, clear, and directly inspired by the visual elements, interactions, or features visible in the design screens. Use the format: 'As a ${settings.userType}, I want to [specific action based on the design], so that [clear, user-focused benefit]'. Ensure the acceptance criteria are simple, testable, and directly related to the user story, focusing on specific behaviors or outcomes. Do not include any summaries, introductions, placeholders, or additional text beyond the user stories and their acceptance criteria.`,
         images: imageBase64s,
         storyCount: settings.storyCount,
         criteriaCount: settings.criteriaCount,
@@ -66,32 +57,10 @@ export const useStoryManager = (
         aiRequest.audienceType = settings.audienceType;
       }
       
-      console.log('Calling generateUserStories with request:', aiRequest);
       const generatedStories = await generateUserStories(aiRequest);
-      console.log('Generated stories:', generatedStories);
-      
-      // Validate the response
-      if (!Array.isArray(generatedStories)) {
-        throw new Error('Invalid response: Expected an array of user stories');
-      }
-      
-      if (generatedStories.length !== settings.storyCount) {
-        throw new Error(`Expected ${settings.storyCount} user stories, but received ${generatedStories.length}`);
-      }
-      
-      for (const story of generatedStories) {
-        if (!story.title || !story.description || !Array.isArray(story.acceptanceCriteria)) {
-          throw new Error('Invalid user story format: Missing title, description, or acceptance criteria');
-        }
-        if (story.acceptanceCriteria.length !== settings.criteriaCount) {
-          throw new Error(`Expected ${settings.criteriaCount} acceptance criteria for story "${story.title}", but received ${story.acceptanceCriteria.length}`);
-        }
-      }
-
       setStories(generatedStories);
       
       if (userId) {
-        console.log('Saving generation history for user:', userId);
         await saveGenerationHistory(userId, generatedStories, settings);
         
         const newHistoryEntry: GenerationHistory = {
@@ -108,18 +77,15 @@ export const useStoryManager = (
         description: `${generatedStories.length} user stories created based on your designs.`
       });
       
-      // Navigate to stories page
-      navigate('/stories');
-      
     } catch (error) {
       console.error('Error generating stories:', error);
       toast.error("Failed to generate stories", {
-        description: error instanceof Error ? error.message : "There was an error processing your design files. Please try again later."
+        description: "There was an error processing your design files. Please try again later."
       });
     } finally {
       setIsGenerating(false);
     }
-  }, [files, settings, userId, setIsGenerating, navigate]);
+  }, [files, settings, userId, setIsGenerating]);
 
   const createShareLink = useCallback(async () => {
     if (stories.length === 0) {
