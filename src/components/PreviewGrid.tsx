@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useFiles } from '@/context/FileContext';
 import { Button } from '@/components/Button';
 import { X, ImageIcon } from 'lucide-react';
@@ -25,7 +25,6 @@ const PreviewGrid: React.FC = () => {
                 src={file.preview} 
                 alt={file.file.name}
                 className="object-cover w-full h-full"
-                onLoad={() => URL.revokeObjectURL(file.preview)}
               />
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/30 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </div>

@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { DesignFile, StorySettings } from '@/lib/types';
 import { toast } from "sonner";
@@ -23,11 +24,16 @@ export const useFileManager = () => {
       return;
     }
     
-    const filesWithPreviews = imageFiles.map(file => ({
-      id: crypto.randomUUID(),
-      file,
-      preview: URL.createObjectURL(file)
-    }));
+    const filesWithPreviews = imageFiles.map(file => {
+      // Create object URL for preview
+      const preview = URL.createObjectURL(file);
+      
+      return {
+        id: crypto.randomUUID(),
+        file,
+        preview
+      };
+    });
     
     setFiles(prev => [...prev, ...filesWithPreviews]);
     

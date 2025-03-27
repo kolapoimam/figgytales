@@ -5,8 +5,9 @@ import Header from '@/components/Header';
 import StoryCard from '@/components/StoryCard';
 import { Button } from '@/components/Button';
 import ShareDialog from '@/components/ShareDialog';
+import BackButton from '@/components/BackButton';
 import { useFiles } from '@/context/FileContext';
-import { ChevronLeft, ClipboardCopy, Download, Check, Share2, Plus } from 'lucide-react';
+import { ClipboardCopy, Download, Check, Share2, Plus } from 'lucide-react';
 import { toast } from "sonner";
 import HistoryList from '@/components/HistoryList';
 import LoginButton from '@/components/LoginButton';
@@ -128,14 +129,16 @@ const Results: React.FC = () => {
       
       <div className="flex-1 max-w-5xl w-full mx-auto px-4 md:px-6 pb-20">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 animate-fade-in">
-          <Button 
-            variant="outline" 
-            onClick={startOver}
-            className="group"
-          >
-            <ChevronLeft size={16} className="mr-1 group-hover:-translate-x-1 transition-transform" />
-            Start Over
-          </Button>
+          <div className="flex gap-2">
+            <BackButton showConfirm={true} />
+            <Button 
+              variant="outline" 
+              onClick={startOver}
+              className="group"
+            >
+              Start Over
+            </Button>
+          </div>
           
           <div className="flex gap-3 self-end sm:self-auto">
             <Button 

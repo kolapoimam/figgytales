@@ -23,6 +23,7 @@ const RoadmapSection: React.FC = () => {
   const [features, setFeatures] = useState<UpcomingFeature[]>([]);
   const [showRoadmap, setShowRoadmap] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasUpvoted, setHasUpvoted] = useState(false);
   const { user } = useFiles();
 
   const fetchFeatures = async () => {
@@ -56,6 +57,10 @@ const RoadmapSection: React.FC = () => {
           created_at: feature.created_at
         } as UpcomingFeature;
       });
+      
+      // Check if user has upvoted any feature
+      const userHasUpvoted = processedFeatures.some(feature => feature.hasUpvoted);
+      setHasUpvoted(userHasUpvoted);
       
       // Sort by upvote count (descending)
       const sortedFeatures = processedFeatures.sort((a, b) => b.upvotes - a.upvotes);
@@ -109,6 +114,9 @@ const RoadmapSection: React.FC = () => {
         )
       );
       
+      // Update the hasUpvoted state
+      setHasUpvoted(true);
+      
       toast.success('Thanks for your vote!');
     } catch (error) {
       console.error('Error upvoting feature:', error);
@@ -116,7 +124,8 @@ const RoadmapSection: React.FC = () => {
     }
   };
 
-  const topFeatures = features.slice(0, 3); // Only show top 3 in the home page
+  // Always show the top 3 features
+  const topFeatures = features.slice(0, 3);
 
   return (
     <div className="mt-16 animate-slide-up">
@@ -165,8 +174,12 @@ const RoadmapSection: React.FC = () => {
               variant="outline" 
               onClick={() => setShowRoadmap(true)}
               className="group"
+              disabled={!hasUpvoted}
             >
               View Full Roadmap
+              {!hasUpvoted && (
+                <span className="ml-2 text-xs text-muted-foreground">(Available after upvoting)</span>
+              )}
             </Button>
           </div>
           
