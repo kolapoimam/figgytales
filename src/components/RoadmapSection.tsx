@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/Button';
 import { toast } from 'sonner';
@@ -23,14 +22,19 @@ const RoadmapSection: React.FC = () => {
     setIsLoading(true);
     try {
       const fetchedFeatures = await fetchFeatures();
+      console.log("Fetched features:", fetchedFeatures); // Debug log
       setFeatures(fetchedFeatures);
-      
-      // Check if user has upvoted any feature
       const userHasUpvoted = fetchedFeatures.some(feature => feature.hasUpvoted);
       setHasUpvoted(userHasUpvoted);
     } catch (error) {
       console.error('Error loading features:', error);
       toast.error('Failed to load roadmap items');
+      // Fallback to mock data if fetch fails
+      setFeatures([
+        { id: "1", title: "Dark Mode", description: "Toggle between light and dark themes.", upvotes: 5, hasUpvoted: false },
+        { id: "2", title: "Story Sharing", description: "Share stories directly from the app.", upvotes: 3, hasUpvoted: false },
+        { id: "3", title: "Custom Avatars", description: "Create and customize your avatar.", upvotes: 2, hasUpvoted: false },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -39,12 +43,9 @@ const RoadmapSection: React.FC = () => {
   const handleUpvote = async (featureId: string) => {
     try {
       const success = await upvoteFeature(featureId);
-      
       if (!success) {
         return;
       }
-      
-      // Update local state
       setFeatures(prev => 
         prev.map(feature => 
           feature.id === featureId 
@@ -52,10 +53,7 @@ const RoadmapSection: React.FC = () => {
             : feature
         ).sort((a, b) => b.upvotes - a.upvotes)
       );
-      
-      // Update the hasUpvoted state
       setHasUpvoted(true);
-      
       toast.success('Thanks for your vote!');
     } catch (error) {
       console.error('Error upvoting feature:', error);
@@ -63,7 +61,6 @@ const RoadmapSection: React.FC = () => {
     }
   };
 
-  // Always show the top 3 features
   const topFeatures = features.slice(0, 3);
 
   return (
@@ -79,7 +76,7 @@ const RoadmapSection: React.FC = () => {
         <div className="flex justify-center py-12">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
         </div>
-      ) : (
+      ) : topFeatures.length > 0 ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {topFeatures.map((feature) => (
@@ -89,32 +86,4 @@ const RoadmapSection: React.FC = () => {
                 onUpvote={handleUpvote} 
               />
             ))}
-          </div>
-          
-          <div className="flex justify-center">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowRoadmap(true)}
-              className="group"
-              disabled={!hasUpvoted}
-            >
-              View Full Roadmap
-              {!hasUpvoted && (
-                <span className="ml-2 text-xs text-muted-foreground">(Available after upvoting)</span>
-              )}
-            </Button>
-          </div>
-          
-          <RoadmapDialog
-            open={showRoadmap}
-            onOpenChange={setShowRoadmap}
-            features={features}
-            onUpvote={handleUpvote}
-          />
-        </>
-      )}
-    </div>
-  );
-};
-
-export default RoadmapSection;
+         
