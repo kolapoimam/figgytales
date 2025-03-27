@@ -3,12 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/Button';
 import { ThumbsUp } from 'lucide-react';
 import { UpcomingFeature } from '@/lib/types';
-
-// Adjust this based on your actual theme implementation
-const useTheme = () => {
-  const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-  return { theme };
-};
+import { useTheme } from '@/context/ThemeContext';
 
 interface RoadmapDialogProps {
   open: boolean;
