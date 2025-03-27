@@ -66,3 +66,21 @@ export const USER_TYPES = {
   external: ["Customer", "End User", "Administrator", "Guest User", "Mobile User", "Power User"],
   default: ["User", "Customer", "Administrator", "Guest", "Developer"]
 };
+
+// Upcoming feature interfaces
+export interface UpcomingFeature {
+  id: string;
+  title: string;
+  description: string;
+  upvotes: number;
+  hasUpvoted: boolean;
+  created_at?: string;
+}
+
+export interface FeatureUpvote {
+  id: string;
+  feature_id: string;
+  user_id?: string;
+  ip_address?: string;
+  created_at?: string;
+}

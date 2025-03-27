@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -51,7 +52,9 @@ const ShareView: React.FC = () => {
         if (data.stories) {
           // Validate the stories data structure
           if (Array.isArray(data.stories)) {
-            setStories(data.stories);
+            // Cast the JSON data to UserStory array
+            const userStories = data.stories as unknown as UserStory[];
+            setStories(userStories);
           } else {
             console.error('Invalid stories data format:', data.stories);
             toast.error("Invalid stories data format");
@@ -104,18 +107,12 @@ const ShareView: React.FC = () => {
       
       <div className="flex-1 max-w-5xl w-full mx-auto px-4 md:px-6 pb-20">
         <div className="flex justify-between items-center mb-8">
-// In your ShareView component
-<Link to="/" replace>  {/* Add replace prop */}
-  <Button variant="outline" className="group">
-    <Home size={16} className="mr-2" />
-    Go Home
-  </Button>
-</Link>
-
-// And for the Go Home button
-<Button onClick={() => navigate('/', { replace: true })} className="mt-4">
-  Go Home
-</Button>
+          <Link to="/" replace>
+            <Button variant="outline" className="group">
+              <Home size={16} className="mr-2" />
+              Go Home
+            </Button>
+          </Link>
           
           {stories.length > 0 && (
             <Button 
@@ -139,7 +136,7 @@ const ShareView: React.FC = () => {
             {stories.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No stories found in this share.</p>
-                <Button onClick={() => navigate('/')} className="mt-4">
+                <Button onClick={() => navigate('/', { replace: true })} className="mt-4">
                   Go Home
                 </Button>
               </div>

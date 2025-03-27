@@ -7,17 +7,10 @@ import { ThumbsUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useFiles } from '@/context/FileContext';
-
-interface Feature {
-  id: string;
-  title: string;
-  description: string;
-  upvotes: number;
-  hasUpvoted: boolean;
-}
+import { UpcomingFeature } from '@/lib/types';
 
 const RoadmapSection: React.FC = () => {
-  const [features, setFeatures] = useState<Feature[]>([]);
+  const [features, setFeatures] = useState<UpcomingFeature[]>([]);
   const [showRoadmap, setShowRoadmap] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useFiles();
@@ -25,7 +18,22 @@ const RoadmapSection: React.FC = () => {
   const fetchFeatures = async () => {
     setIsLoading(true);
     try {
-      // Get the features with upvote counts
+      // First check if the table exists to avoid errors
+      const { error: tableCheckError } = await supabase
+        .from('upcoming_features')
+        .select('id')
+        .limit(1)
+        .single();
+        
+      // If the table doesn't exist yet (likely in development), return empty array
+      if (tableCheckError && tableCheckError.code === 'PGRST116') {
+        console.log('Table upcoming_features does not exist yet');
+        setFeatures([]);
+        setIsLoading(false);
+        return;
+      }
+        
+      // Get the features
       const { data: featuresData, error: featuresError } = await supabase
         .from('upcoming_features')
         .select(`
@@ -37,11 +45,31 @@ const RoadmapSection: React.FC = () => {
         
       if (featuresError) throw featuresError;
       
-      if (!featuresData) return;
+      if (!featuresData) {
+        setFeatures([]);
+        setIsLoading(false);
+        return;
+      }
       
       // For each feature, get upvote count
       const featuresWithCounts = await Promise.all(
         featuresData.map(async (feature) => {
+          // Check if the upvotes table exists
+          const { error: upvoteTableCheckError } = await supabase
+            .from('feature_upvotes')
+            .select('id')
+            .limit(1)
+            .single();
+            
+          // If table doesn't exist, return feature with 0 upvotes
+          if (upvoteTableCheckError && upvoteTableCheckError.code === 'PGRST116') {
+            return {
+              ...feature,
+              upvotes: 0,
+              hasUpvoted: false
+            };
+          }
+          
           // Get total upvote count
           const { count: upvotes, error: countError } = await supabase
             .from('feature_upvotes')
@@ -79,6 +107,7 @@ const RoadmapSection: React.FC = () => {
     } catch (error) {
       console.error('Error fetching features:', error);
       toast.error('Failed to load roadmap items');
+      setFeatures([]);
     } finally {
       setIsLoading(false);
     }
@@ -90,6 +119,19 @@ const RoadmapSection: React.FC = () => {
 
   const handleUpvote = async (featureId: string) => {
     try {
+      // First check if the table exists
+      const { error: tableCheckError } = await supabase
+        .from('feature_upvotes')
+        .select('id')
+        .limit(1)
+        .single();
+        
+      // If the table doesn't exist, show message and return
+      if (tableCheckError && tableCheckError.code === 'PGRST116') {
+        toast.info('Upvoting will be available soon');
+        return;
+      }
+      
       // Generate a clientId if user is not logged in
       const userId = user?.id;
       const clientId = !userId ? localStorage.getItem('clientId') || crypto.randomUUID() : null;
@@ -98,7 +140,7 @@ const RoadmapSection: React.FC = () => {
         localStorage.setItem('clientId', clientId);
       }
       
-      // Check if already upvoted based on IP
+      // Check if already upvoted based on ID
       const { data: existingVote, error: checkError } = await supabase
         .from('feature_upvotes')
         .select('id')
@@ -106,7 +148,7 @@ const RoadmapSection: React.FC = () => {
         .eq(userId ? 'user_id' : 'ip_address', userId || clientId)
         .maybeSingle();
         
-      if (checkError) throw checkError;
+      if (checkError && checkError.code !== 'PGRST116') throw checkError;
       
       if (existingVote) {
         // Already upvoted
