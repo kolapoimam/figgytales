@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { DesignFile, StorySettings } from '@/lib/types';
 import { toast } from "sonner";
@@ -13,43 +12,45 @@ export const useFileManager = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const addFiles = useCallback((newFiles: File[]) => {
-    const imageFiles = newFiles.filter(file => 
-      file.type.startsWith('image/')
-    );
-    
-    if (files.length + imageFiles.length > 5) {
+    // Filter for valid image files
+    const validImageFiles = newFiles.filter(file => {
+      const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
+      return validTypes.includes(file.type);
+    });
+
+    if (validImageFiles.length === 0) {
+      toast.error("Invalid file type", {
+        description: "Please upload only image files (PNG, JPG, JPEG, SVG, or WEBP)."
+      });
+      return;
+    }
+
+    if (files.length + validImageFiles.length > 5) {
       toast.error("Maximum 5 files allowed", {
         description: `You can only upload up to 5 design files.`
       });
       return;
     }
-    
-    const filesWithPreviewsPromises = imageFiles.map(file => 
-      new Promise<DesignFile>((resolve) => {
-        // Create object URL for preview
-        const preview = URL.createObjectURL(file);
-        
-        // Create a DesignFile object
-        const designFile: DesignFile = {
-          id: crypto.randomUUID(),
-          file,
-          preview
-        };
-        
-        resolve(designFile);
-      })
-    );
-    
-    // Wait for all previews to be generated
-    Promise.all(filesWithPreviewsPromises).then(filesWithPreviews => {
-      setFiles(prev => [...prev, ...filesWithPreviews]);
+
+    const filesWithPreviews = validImageFiles.map(file => {
+      // Create object URL for preview
+      const preview = URL.createObjectURL(file);
       
-      if (filesWithPreviews.length > 0) {
-        toast.success(`${filesWithPreviews.length} file${filesWithPreviews.length > 1 ? 's' : ''} added`, {
-          description: "Ready to generate stories from your designs."
-        });
-      }
+      // Create a DesignFile object
+      return {
+        id: crypto.randomUUID(),
+        file,
+        preview
+      };
     });
+
+    setFiles(prev => [...prev, ...filesWithPreviews]);
+    
+    if (filesWithPreviews.length > 0) {
+      toast.success(`${filesWithPreviews.length} file${filesWithPreviews.length > 1 ? 's' : ''} added`, {
+        description: "Ready to generate stories from your designs."
+      });
+    }
   }, [files.length]);
 
   const removeFile = useCallback((id: string) => {
