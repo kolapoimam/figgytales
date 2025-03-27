@@ -11,7 +11,7 @@ interface FeatureCardProps {
 
 const FeatureCard: React.FC<FeatureCardProps> = ({ feature, onUpvote }) => {
   return (
-    <Card className="h-full flex flex-col card-hover" style={{ backgroundColor: '#1a2b3c' }}>
+    <Card className="h-full flex flex-col card-hover" style={{ backgroundColor: '#f78333' }}>
       <CardHeader>
         <CardTitle>{feature.title}</CardTitle>
         <CardDescription>
@@ -24,12 +24,11 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, onUpvote }) => {
       <CardFooter>
         <Button 
           onClick={() => onUpvote(feature.id)}
-          variant={feature.hasUpvoted ? "secondary" : "outline"}
+          variant="outline"
           className="w-full"
-          disabled={feature.hasUpvoted}
         >
-          <ThumbsUp size={16} className={`mr-2 ${feature.hasUpvoted ? 'text-primary' : ''}`} />
-          {feature.hasUpvoted ? 'Upvoted' : 'Upvote'}
+          <ThumbsUp size={16} className="mr-2" />
+          Upvote
         </Button>
       </CardFooter>
     </Card>
