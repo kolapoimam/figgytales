@@ -18,7 +18,7 @@ const RoadmapSection: React.FC = () => {
   const fetchFeatures = async () => {
     setIsLoading(true);
     try {
-      // Using raw query to avoid TypeScript issues with tables not in the types
+      // Using stored procedure to get features with counts
       const { data: featuresData, error: featuresError } = await supabase
         .rpc('get_features_with_counts')
         .select('*');
@@ -38,15 +38,12 @@ const RoadmapSection: React.FC = () => {
       
       // Process the data
       const processedFeatures = featuresData.map(feature => {
-        // Check if current user has upvoted
-        const hasUpvoted = feature.has_upvoted || false;
-        
         return {
           id: feature.id,
           title: feature.title,
           description: feature.description,
-          upvotes: feature.upvote_count || 0,
-          hasUpvoted: hasUpvoted,
+          upvotes: Number(feature.upvote_count) || 0,
+          hasUpvoted: feature.has_upvoted || false,
           created_at: feature.created_at
         } as UpcomingFeature;
       });

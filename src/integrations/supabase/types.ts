@@ -9,6 +9,38 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      feature_upvotes: {
+        Row: {
+          created_at: string
+          feature_id: string
+          id: string
+          ip_address: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          feature_id: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          feature_id?: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_upvotes_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       history: {
         Row: {
           created_at: string
@@ -99,6 +131,27 @@ export type Database = {
           id?: string
           stories?: Json
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      upcoming_features: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          title?: string
         }
         Relationships: []
       }
