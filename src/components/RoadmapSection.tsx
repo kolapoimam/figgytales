@@ -86,4 +86,36 @@ const RoadmapSection: React.FC = () => {
                 onUpvote={handleUpvote} 
               />
             ))}
-         
+          </div>
+          
+          <div className="flex justify-center">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowRoadmap(true)}
+              className="group"
+              disabled={!hasUpvoted}
+            >
+              View Full Roadmap
+              {!hasUpvoted && (
+                <span className="ml-2 text-xs text-muted-foreground">(Available after upvoting)</span>
+              )}
+            </Button>
+          </div>
+          
+          <RoadmapDialog
+            open={showRoadmap}
+            onOpenChange={setShowRoadmap}
+            features={features}
+            onUpvote={handleUpvote}
+          />
+        </>
+      ) : (
+        <p className="text-center text-muted-foreground">
+          No upcoming features available at the moment. Check back later!
+        </p>
+      )}
+    </div>
+  );
+};
+
+export default RoadmapSection;
