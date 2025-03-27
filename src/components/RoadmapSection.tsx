@@ -5,51 +5,80 @@ import { useFiles } from '@/context/FileContext';
 import { UpcomingFeature } from '@/lib/types';
 import FeatureCard from './FeatureCard';
 import RoadmapDialog from './RoadmapDialog';
+import { fetchFeatures, upvoteFeature } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 const RoadmapSection: React.FC = () => {
-  const [features, setFeatures] = useState<UpcomingFeature[]>(() => {
-    const savedFeatures = sessionStorage.getItem('features');
-    if (savedFeatures) {
-      // On page load, reset hasUpvoted to false but keep upvotes
-      const parsedFeatures = JSON.parse(savedFeatures);
-      return parsedFeatures.map((feature: UpcomingFeature) => ({
-        ...feature,
-        hasUpvoted: false, // Reset on refresh
-      }));
-    }
-    return [
-      { id: "1", title: "AI Story Templates", description: "Pre-made templates for common user story scenarios to speed up story creation", upvotes: 0, hasUpvoted: false },
-      { id: "2", title: "Batch Export to PDF", description: "Export multiple stories at once to a PDF document", upvotes: 0, hasUpvoted: false },
-      { id: "3", title: "Custom Fields", description: "Add custom fields to your stories to track additional information", upvotes: 0, hasUpvoted: false },
-      { id: "4", title: "Team Collaboration", description: "Invite team members to collaborate on story creation", upvotes: 0, hasUpvoted: false },
-      { id: "5", title: "Integrated Testing", description: "Generate test cases directly from acceptance criteria", upvotes: 0, hasUpvoted: false },
-      { id: "6", title: "Design to API Integration", description: "Automatically generate API endpoints from your design screens", upvotes: 0, hasUpvoted: false },
-      { id: "7", title: "Collaborative Editing", description: "Work on user stories with your team in real-time", upvotes: 0, hasUpvoted: false },
-      { id: "8", title: "Custom Export Templates", description: "Create and use custom templates for exporting your user stories", upvotes: 0, hasUpvoted: false },
-      { id: "9", title: "Jira Integration", description: "Export user stories directly to Jira", upvotes: 0, hasUpvoted: false },
-      { id: "10", title: "AI Voice Narration", description: "Listen to AI narrate your user stories for better comprehension", upvotes: 0, hasUpvoted: false },
-    ];
-  });
+  const [features, setFeatures] = useState<UpcomingFeature[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showRoadmap, setShowRoadmap] = useState(false);
+  const [upvoting, setUpvoting] = useState<string | null>(null);
   const { user } = useFiles();
 
+  // Fetch features and set up real-time subscription
   useEffect(() => {
-    // Save features to sessionStorage whenever they change
-    sessionStorage.setItem('features', JSON.stringify(features));
-  }, [features]);
+    const loadFeatures = async () => {
+      setLoading(true);
+      try {
+        const fetchedFeatures = await fetchFeatures();
+        setFeatures(fetchedFeatures);
+      } catch (error) {
+        console.error('Error loading features:', error);
+        toast.error('Failed to load features');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleUpvote = (featureId: string) => {
-    const updatedFeatures = features.map(feature =>
-      feature.id === featureId
-        ? { ...feature, upvotes: feature.upvotes + 1, hasUpvoted: true }
-        : feature
-    ).sort((a, b) => b.upvotes - a.upvotes);
+    loadFeatures();
 
-    setFeatures(updatedFeatures);
-    toast.success('Thanks for your vote!');
+    // Subscribe to changes in feature_upvotes for real-time updates
+    const subscription = supabase
+      .channel('feature_upvotes_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'feature_upvotes' },
+        () => {
+          loadFeatures();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, []);
+
+  const handleUpvote = async (featureId: string) => {
+    setUpvoting(featureId);
+    try {
+      const success = await upvoteFeature(featureId);
+      if (!success) {
+        toast.error('Failed to upvote');
+        return;
+      }
+
+      // Features will be updated via the real-time subscription,
+      // but we can optimistically update the hasUpvoted state
+      setFeatures((prevFeatures) =>
+        prevFeatures.map((feature) =>
+          feature.id === featureId ? { ...feature, hasUpvoted: true } : feature
+        )
+      );
+      toast.success('Thanks for your vote!');
+    } catch (error) {
+      console.error('Error upvoting:', error);
+      toast.error('Failed to upvote');
+    } finally {
+      setUpvoting(null);
+    }
   };
 
   const topFeatures = features.slice(0, 6);
+
+  if (loading) {
+    return <p className="text-center text-muted-foreground">Loading features...</p>;
+  }
 
   return (
     <div className="mt-16 animate-slide-up">
@@ -68,6 +97,7 @@ const RoadmapSection: React.FC = () => {
                 key={feature.id}
                 feature={feature}
                 onUpvote={handleUpvote}
+                upvoting={upvoting}
               />
             ))}
           </div>
@@ -87,6 +117,7 @@ const RoadmapSection: React.FC = () => {
             onOpenChange={setShowRoadmap}
             features={features}
             onUpvote={handleUpvote}
+            upvoting={upvoting}
           />
         </>
       ) : (
