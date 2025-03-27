@@ -8,18 +8,17 @@ import { useTheme } from '@/context/ThemeContext';
 interface FeatureCardProps {
   feature: UpcomingFeature;
   onUpvote: (featureId: string) => void;
-  upvoting: string | null;
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ feature, onUpvote, upvoting }) => {
+const FeatureCard: React.FC<FeatureCardProps> = ({ feature, onUpvote }) => {
   const { theme } = useTheme();
 
   const cardStyle = {
     background: theme === 'dark'
       ? 'linear-gradient(135deg, rgba(247, 131, 51, 0.7), rgba(200, 100, 30, 0.5))'
       : 'linear-gradient(135deg, rgba(50, 50, 50, 0.7), rgba(20, 20, 20, 0.5))',
-    backdropFilter: 'blur(10px)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(10px)', // Adds a glassmorphism effect
+    border: '1px solid rgba(255, 255, 255, 0.1)', // Subtle border for the mirror effect
   };
 
   const textStyle = {
@@ -52,15 +51,15 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, onUpvote, upvoting }
         <p className="text-sm" style={textStyle}>{feature.description}</p>
       </CardContent>
       <CardFooter>
-        <Button
+        <Button 
           onClick={() => onUpvote(feature.id)}
           variant="outline"
           className="w-full"
           style={buttonStyle}
-          disabled={feature.hasUpvoted || upvoting === feature.id}
+          disabled={feature.hasUpvoted}
         >
           <ThumbsUp size={16} className="mr-2" style={iconStyle} />
-          {upvoting === feature.id ? 'Upvoting...' : feature.hasUpvoted ? 'Upvoted' : 'Upvote'}
+          {feature.hasUpvoted ? 'Upvoted' : 'Upvote'}
         </Button>
       </CardFooter>
     </Card>
