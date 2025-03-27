@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { generateUserStories, saveGenerationHistory, createStoryShareLink, fetchUserHistory } from '@/services/fileService';
 
 export const useStoryManager = (
-  files: any[], 
+  files: { file: File }[], 
   settings: StorySettings, 
   userId: string | null,
   setIsGenerating: (value: boolean) => void
