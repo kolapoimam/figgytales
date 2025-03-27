@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/Button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +11,7 @@ interface FeatureCardProps {
 
 const FeatureCard: React.FC<FeatureCardProps> = ({ feature, onUpvote }) => {
   return (
-    <Card className="h-full flex flex-col card-hover">
+    <Card className="h-full flex flex-col card-hover" style={{ backgroundColor: '#1a2b3c' }}>
       <CardHeader>
         <CardTitle>{feature.title}</CardTitle>
         <CardDescription>
