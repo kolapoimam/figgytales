@@ -9,14 +9,13 @@ const FileUploader: React.FC = () => {
   const { addFiles, files } = useFiles();
   
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    // Create preview URLs for each file
-    const filesWithPreview = acceptedFiles.map(file => ({
-      id: `${file.name}-${Date.now()}`,
-      file,
-      preview: URL.createObjectURL(file),
-    }));
-    addFiles(filesWithPreview);
-    toast.success(`${acceptedFiles.length} file${acceptedFiles.length > 1 ? 's' : ''} added. Ready to generate stories from your designs.`);
+    console.log('onDrop called with files:', acceptedFiles); // Debug log
+    if (acceptedFiles.length === 0) {
+      toast.error('No valid files selected. Please upload images (PNG, JPG, JPEG, SVG, WEBP) up to 10MB.');
+      return;
+    }
+    // Pass raw File objects to addFiles; let useFileManager handle preview generation
+    addFiles(acceptedFiles);
   }, [addFiles]);
   
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
@@ -26,7 +25,6 @@ const FileUploader: React.FC = () => {
     },
     maxSize: 10485760, // 10MB
     maxFiles: 5,
-    noClick: true, // Disable click to open file dialog
   });
 
   // Add clipboard paste functionality
@@ -34,13 +32,8 @@ const FileUploader: React.FC = () => {
     const handlePaste = (e: ClipboardEvent) => {
       if (e.clipboardData && e.clipboardData.files.length > 0) {
         const files = Array.from(e.clipboardData.files);
-        const filesWithPreview = files.map(file => ({
-          id: `${file.name}-${Date.now()}`,
-          file,
-          preview: URL.createObjectURL(file),
-        }));
-        addFiles(filesWithPreview);
-        toast.success(`${files.length} file${files.length > 1 ? 's' : ''} added. Ready to generate stories from your designs.`);
+        console.log('Pasted files:', files); // Debug log
+        addFiles(files);
         e.preventDefault();
       }
     };
@@ -51,15 +44,9 @@ const FileUploader: React.FC = () => {
     };
   }, [addFiles]);
 
-  // Clean up preview URLs when files change
+  // Log files state for debugging
   useEffect(() => {
-    return () => {
-      files.forEach(file => {
-        if (file.preview) {
-          URL.revokeObjectURL(file.preview);
-        }
-      });
-    };
+    console.log('Current files in FileUploader:', files); // Debug log
   }, [files]);
 
   return (
