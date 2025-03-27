@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/Button';
@@ -18,6 +17,8 @@ const RoadmapDialog: React.FC<RoadmapDialogProps> = ({
   features, 
   onUpvote 
 }) => {
+  const sortedFeatures = [...features].sort((a, b) => b.upvotes - a.upvotes);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -26,8 +27,8 @@ const RoadmapDialog: React.FC<RoadmapDialogProps> = ({
         </DialogHeader>
         
         <div className="space-y-6 mt-4">
-          {features.map((feature) => (
-            <div key={feature.id} className="flex gap-4 p-4 border border-border rounded-lg">
+          {sortedFeatures.map((feature) => (
+            <div key={feature.id} className="flex gap-4 p-4 border border-border rounded-lg" style={{ backgroundColor: '#1a2b3c' }}>
               <div className="flex-1">
                 <h3 className="font-medium text-lg">{feature.title}</h3>
                 <p className="text-muted-foreground mt-1">{feature.description}</p>
