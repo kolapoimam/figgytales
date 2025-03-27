@@ -13,16 +13,16 @@ const RoadmapSection: React.FC = () => {
       return JSON.parse(savedFeatures);
     }
     return [
-      { id: "1", title: "AI Story Templates", description: "Pre-made templates for common user story scenarios to speed up story creation", upvotes: 0 },
-      { id: "2", title: "Batch Export to PDF", description: "Export multiple stories at once to a PDF document", upvotes: 0 },
-      { id: "3", title: "Custom Fields", description: "Add custom fields to your stories to track additional information", upvotes: 0 },
-      { id: "4", title: "Team Collaboration", description: "Invite team members to collaborate on story creation", upvotes: 0 },
-      { id: "5", title: "Integrated Testing", description: "Generate test cases directly from acceptance criteria", upvotes: 0 },
-      { id: "6", title: "Design to API Integration", description: "Automatically generate API endpoints from your design screens", upvotes: 0 },
-      { id: "7", title: "Collaborative Editing", description: "Work on user stories with your team in real-time", upvotes: 0 },
-      { id: "8", title: "Custom Export Templates", description: "Create and use custom templates for exporting your user stories", upvotes: 0 },
-      { id: "9", title: "Jira Integration", description: "Export user stories directly to Jira", upvotes: 0 },
-      { id: "10", title: "AI Voice Narration", description: "Listen to AI narrate your user stories for better comprehension", upvotes: 0 },
+      { id: "1", title: "AI Story Templates", description: "Pre-made templates for common user story scenarios to speed up story creation", upvotes: 0, hasUpvoted: false },
+      { id: "2", title: "Batch Export to PDF", description: "Export multiple stories at once to a PDF document", upvotes: 0, hasUpvoted: false },
+      { id: "3", title: "Custom Fields", description: "Add custom fields to your stories to track additional information", upvotes: 0, hasUpvoted: false },
+      { id: "4", title: "Team Collaboration", description: "Invite team members to collaborate on story creation", upvotes: 0, hasUpvoted: false },
+      { id: "5", title: "Integrated Testing", description: "Generate test cases directly from acceptance criteria", upvotes: 0, hasUpvoted: false },
+      { id: "6", title: "Design to API Integration", description: "Automatically generate API endpoints from your design screens", upvotes: 0, hasUpvoted: false },
+      { id: "7", title: "Collaborative Editing", description: "Work on user stories with your team in real-time", upvotes: 0, hasUpvoted: false },
+      { id: "8", title: "Custom Export Templates", description: "Create and use custom templates for exporting your user stories", upvotes: 0, hasUpvoted: false },
+      { id: "9", title: "Jira Integration", description: "Export user stories directly to Jira", upvotes: 0, hasUpvoted: false },
+      { id: "10", title: "AI Voice Narration", description: "Listen to AI narrate your user stories for better comprehension", upvotes: 0, hasUpvoted: false },
     ];
   });
   const [showRoadmap, setShowRoadmap] = useState(false);
@@ -39,7 +39,7 @@ const RoadmapSection: React.FC = () => {
   const handleUpvote = (featureId: string) => {
     const updatedFeatures = features.map(feature =>
       feature.id === featureId
-        ? { ...feature, upvotes: feature.upvotes + 1 }
+        ? { ...feature, upvotes: feature.upvotes + 1, hasUpvoted: true }
         : feature
     ).sort((a, b) => b.upvotes - a.upvotes);
 
