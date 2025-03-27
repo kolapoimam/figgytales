@@ -14,15 +14,19 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, onUpvote }) => {
   const { theme } = useTheme();
 
   const cardStyle = {
-    backgroundColor: theme === 'dark' ? '#f78333' : '#000000',
+    background: theme === 'dark'
+      ? 'linear-gradient(135deg, rgba(247, 131, 51, 0.7), rgba(200, 100, 30, 0.5))'
+      : 'linear-gradient(135deg, rgba(50, 50, 50, 0.7), rgba(20, 20, 20, 0.5))',
+    backdropFilter: 'blur(10px)', // Adds a glassmorphism effect
+    border: '1px solid rgba(255, 255, 255, 0.1)', // Subtle border for the mirror effect
   };
 
   const textStyle = {
-    color: '#ffffff',
+    color: theme === 'dark' ? '#000000' : '#ffffff',
   };
 
   const votesStyle = {
-    color: '#ffffff',
+    color: theme === 'dark' ? '#000000' : '#ffffff',
   };
 
   const buttonStyle = theme === 'light' ? {
