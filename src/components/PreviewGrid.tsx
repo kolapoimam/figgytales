@@ -1,11 +1,18 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useFiles } from '@/context/FileContext';
 import { Button } from '@/components/Button';
 import { X, ImageIcon } from 'lucide-react';
 
 const PreviewGrid: React.FC = () => {
   const { files, removeFile } = useFiles();
+
+  // Add logging to debug files state
+  useEffect(() => {
+    console.log('PreviewGrid files:', files);
+    files.forEach(file => {
+      console.log('File preview URL:', file.preview);
+    });
+  }, [files]);
 
   if (files.length === 0) {
     return null;
@@ -26,6 +33,8 @@ const PreviewGrid: React.FC = () => {
                   src={file.preview} 
                   alt={file.file.name}
                   className="object-cover w-full h-full"
+                  onError={(e) => console.error('Image load error for file:', file, 'Error:', e)}
+                  onLoad={() => console.log('Image loaded successfully for file:', file)}
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/30 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </div>
