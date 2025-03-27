@@ -1,9 +1,12 @@
 
+// FileContext.tsx
 import React, { createContext, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { DesignFile, StorySettings, UserStory, GenerationHistory, User } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
-import { useFileManager } from '@/hooks/useFileManager';
+import useFileManager from '@/hooks/useFileManager'; // Changed from named to default import
 import { useStoryManager } from '@/hooks/useStoryManager';
+
+// ... rest of the FileContext implementation ...
 
 interface FileContextType {
   files: DesignFile[];
