@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useFiles } from '@/context/FileContext';
@@ -7,10 +6,17 @@ import { Upload, FileSymlink } from 'lucide-react';
 import { toast } from 'sonner';
 
 const FileUploader: React.FC = () => {
-  const { addFiles } = useFiles();
+  const { addFiles, files } = useFiles();
   
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    addFiles(acceptedFiles);
+    // Create preview URLs for each file
+    const filesWithPreview = acceptedFiles.map(file => ({
+      id: `${file.name}-${Date.now()}`,
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+    addFiles(filesWithPreview);
+    toast.success(`${acceptedFiles.length} file${acceptedFiles.length > 1 ? 's' : ''} added. Ready to generate stories from your designs.`);
   }, [addFiles]);
   
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
@@ -19,6 +25,7 @@ const FileUploader: React.FC = () => {
       'image/*': ['.png', '.jpg', '.jpeg', '.svg', '.webp']
     },
     maxSize: 10485760, // 10MB
+    maxFiles: 5,
     noClick: true, // Disable click to open file dialog
   });
 
@@ -27,7 +34,13 @@ const FileUploader: React.FC = () => {
     const handlePaste = (e: ClipboardEvent) => {
       if (e.clipboardData && e.clipboardData.files.length > 0) {
         const files = Array.from(e.clipboardData.files);
-        addFiles(files);
+        const filesWithPreview = files.map(file => ({
+          id: `${file.name}-${Date.now()}`,
+          file,
+          preview: URL.createObjectURL(file),
+        }));
+        addFiles(filesWithPreview);
+        toast.success(`${files.length} file${files.length > 1 ? 's' : ''} added. Ready to generate stories from your designs.`);
         e.preventDefault();
       }
     };
@@ -37,6 +50,17 @@ const FileUploader: React.FC = () => {
       window.removeEventListener('paste', handlePaste);
     };
   }, [addFiles]);
+
+  // Clean up preview URLs when files change
+  useEffect(() => {
+    return () => {
+      files.forEach(file => {
+        if (file.preview) {
+          URL.revokeObjectURL(file.preview);
+        }
+      });
+    };
+  }, [files]);
 
   return (
     <div 
