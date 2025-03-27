@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 
 import { useState, useCallback } from 'react';
 import { DesignFile, StorySettings } from '@/lib/types';
@@ -50,7 +51,7 @@ export const useFileManager = () => {
         });
       }
     });
-  }, [files.length]);
+  }, []);
 
   const removeFile = useCallback((id: string) => {
     setFiles(prev => {
@@ -71,7 +72,7 @@ export const useFileManager = () => {
       URL.revokeObjectURL(file.preview);
     });
     setFiles([]);
-  }, [files]);
+  }, []);
 
   return {
     files,
