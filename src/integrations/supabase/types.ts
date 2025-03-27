@@ -160,7 +160,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_features_with_counts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          title: string
+          description: string
+          created_at: string
+          upvote_count: number
+          has_upvoted: boolean
+        }[]
+      }
+      upvote_feature: {
+        Args: {
+          p_feature_id: string
+          p_user_id?: string
+          p_ip_address?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

@@ -9,6 +9,16 @@ import { toast } from 'sonner';
 import { useFiles } from '@/context/FileContext';
 import { UpcomingFeature } from '@/lib/types';
 
+// Define the type for the data returned from our RPC function
+type FeatureWithCounts = {
+  id: string;
+  title: string;
+  description: string;
+  created_at: string;
+  upvote_count: number;
+  has_upvoted: boolean;
+}
+
 const RoadmapSection: React.FC = () => {
   const [features, setFeatures] = useState<UpcomingFeature[]>([]);
   const [showRoadmap, setShowRoadmap] = useState(false);
@@ -20,8 +30,7 @@ const RoadmapSection: React.FC = () => {
     try {
       // Using stored procedure to get features with counts
       const { data: featuresData, error: featuresError } = await supabase
-        .rpc('get_features_with_counts')
-        .select('*');
+        .rpc('get_features_with_counts');
 
       if (featuresError) {
         console.error('Error fetching features:', featuresError);
@@ -37,7 +46,7 @@ const RoadmapSection: React.FC = () => {
       }
       
       // Process the data
-      const processedFeatures = featuresData.map(feature => {
+      const processedFeatures = featuresData.map((feature: FeatureWithCounts) => {
         return {
           id: feature.id,
           title: feature.title,
