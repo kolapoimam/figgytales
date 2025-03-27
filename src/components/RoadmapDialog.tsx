@@ -28,7 +28,7 @@ const RoadmapDialog: React.FC<RoadmapDialogProps> = ({
         
         <div className="space-y-6 mt-4">
           {sortedFeatures.map((feature) => (
-            <div key={feature.id} className="flex gap-4 p-4 border border-border rounded-lg" style={{ backgroundColor: '#1a2b3c' }}>
+            <div key={feature.id} className="flex gap-4 p-4 border border-border rounded-lg" style={{ backgroundColor: '#f78333' }}>
               <div className="flex-1">
                 <h3 className="font-medium text-lg">{feature.title}</h3>
                 <p className="text-muted-foreground mt-1">{feature.description}</p>
@@ -36,11 +36,10 @@ const RoadmapDialog: React.FC<RoadmapDialogProps> = ({
               <div className="flex flex-col items-center">
                 <Button 
                   onClick={() => onUpvote(feature.id)}
-                  variant={feature.hasUpvoted ? "secondary" : "outline"}
+                  variant="outline"
                   size="sm"
-                  disabled={feature.hasUpvoted}
                 >
-                  <ThumbsUp size={16} className={feature.hasUpvoted ? 'text-primary' : ''} />
+                  <ThumbsUp size={16} />
                 </Button>
                 <span className="text-sm font-medium mt-1">{feature.upvotes}</span>
               </div>
