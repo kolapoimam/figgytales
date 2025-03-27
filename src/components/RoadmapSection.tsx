@@ -9,17 +9,6 @@ import { toast } from 'sonner';
 import { useFiles } from '@/context/FileContext';
 import { UpcomingFeature } from '@/lib/types';
 
-// Utility function for safer data access
-const safeFetch = async (tableName: string, query: any) => {
-  try {
-    const result = await query;
-    return { data: result.data, error: result.error };
-  } catch (error) {
-    console.error(`Error fetching from ${tableName}:`, error);
-    return { data: null, error };
-  }
-};
-
 const RoadmapSection: React.FC = () => {
   const [features, setFeatures] = useState<UpcomingFeature[]>([]);
   const [showRoadmap, setShowRoadmap] = useState(false);
@@ -29,14 +18,13 @@ const RoadmapSection: React.FC = () => {
   const fetchFeatures = async () => {
     setIsLoading(true);
     try {
-      // Try to fetch features directly with a custom query
-      const { data: featuresData, error: featuresError } = await safeFetch(
-        'upcoming_features',
-        supabase.from('upcoming_features').select('*')
-      );
-      
+      // Using raw query to avoid TypeScript issues with tables not in the types
+      const { data: featuresData, error: featuresError } = await supabase
+        .rpc('get_features_with_counts')
+        .select('*');
+
       if (featuresError) {
-        console.log('Error or table not found:', featuresError);
+        console.error('Error fetching features:', featuresError);
         setFeatures([]);
         setIsLoading(false);
         return;
@@ -48,59 +36,23 @@ const RoadmapSection: React.FC = () => {
         return;
       }
       
-      // For each feature, get upvote count
-      const featuresWithCounts = await Promise.all(
-        featuresData.map(async (feature: any) => {
-          // Get total upvote count
-          const { data: upvotesData, error: upvotesError } = await safeFetch(
-            'feature_upvotes',
-            supabase.from('feature_upvotes')
-              .select('id')
-              .eq('feature_id', feature.id)
-          );
-          
-          const upvotes = upvotesData ? upvotesData.length : 0;
-          
-          // Check if current user has upvoted
-          let hasUpvoted = false;
-          if (user) {
-            const { data: userUpvoteData } = await safeFetch(
-              'feature_upvotes',
-              supabase.from('feature_upvotes')
-                .select('id')
-                .eq('feature_id', feature.id)
-                .eq('user_id', user.id)
-                .maybeSingle()
-            );
-            
-            hasUpvoted = !!userUpvoteData;
-          } else {
-            // Check for client ID-based upvotes for anonymous users
-            const clientId = localStorage.getItem('clientId');
-            if (clientId) {
-              const { data: clientUpvoteData } = await safeFetch(
-                'feature_upvotes',
-                supabase.from('feature_upvotes')
-                  .select('id')
-                  .eq('feature_id', feature.id)
-                  .eq('ip_address', clientId)
-                  .maybeSingle()
-              );
-              
-              hasUpvoted = !!clientUpvoteData;
-            }
-          }
-          
-          return {
-            ...feature,
-            upvotes,
-            hasUpvoted
-          } as UpcomingFeature;
-        })
-      );
+      // Process the data
+      const processedFeatures = featuresData.map(feature => {
+        // Check if current user has upvoted
+        const hasUpvoted = feature.has_upvoted || false;
+        
+        return {
+          id: feature.id,
+          title: feature.title,
+          description: feature.description,
+          upvotes: feature.upvote_count || 0,
+          hasUpvoted: hasUpvoted,
+          created_at: feature.created_at
+        } as UpcomingFeature;
+      });
       
       // Sort by upvote count (descending)
-      const sortedFeatures = featuresWithCounts.sort((a, b) => b.upvotes - a.upvotes);
+      const sortedFeatures = processedFeatures.sort((a, b) => b.upvotes - a.upvotes);
       setFeatures(sortedFeatures);
     } catch (error) {
       console.error('Error fetching features:', error);
@@ -125,36 +77,20 @@ const RoadmapSection: React.FC = () => {
         localStorage.setItem('clientId', clientId);
       }
       
-      // Check if already upvoted
-      const { data: existingVote } = await safeFetch(
-        'feature_upvotes',
-        supabase.from('feature_upvotes')
-          .select('id')
-          .eq('feature_id', featureId)
-          .eq(userId ? 'user_id' : 'ip_address', userId || clientId)
-          .maybeSingle()
-      );
+      // Using stored procedure to handle upvote
+      const { error } = await supabase.rpc('upvote_feature', { 
+        p_feature_id: featureId,
+        p_user_id: userId || null,
+        p_ip_address: !userId ? clientId : null
+      });
       
-      if (existingVote) {
-        // Already upvoted
-        toast.info('You already upvoted this feature');
-        return;
-      }
-      
-      // Add upvote
-      const { error: upvoteError } = await safeFetch(
-        'feature_upvotes',
-        supabase.from('feature_upvotes')
-          .insert({
-            feature_id: featureId,
-            user_id: userId || null,
-            ip_address: !userId ? clientId : null
-          })
-      );
-      
-      if (upvoteError) {
-        console.error('Error upvoting:', upvoteError);
-        toast.error('Failed to upvote');
+      if (error) {
+        if (error.message.includes('unique constraint')) {
+          toast.info('You already upvoted this feature');
+        } else {
+          console.error('Error upvoting:', error);
+          toast.error('Failed to upvote');
+        }
         return;
       }
       

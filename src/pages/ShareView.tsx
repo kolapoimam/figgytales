@@ -52,9 +52,17 @@ const ShareView: React.FC = () => {
         if (data.stories) {
           // Validate the stories data structure
           if (Array.isArray(data.stories)) {
-            // Cast the JSON data to UserStory array with proper type handling
-            const userStories = data.stories as UserStory[];
-            setStories(userStories);
+            // Safely cast the JSON data to UserStory array
+            const userStories = data.stories as unknown as UserStory[];
+            
+            // Additional validation to ensure properties exist
+            const validStories = userStories.filter(story => 
+              story && typeof story === 'object' && 
+              'id' in story && 'title' in story && 
+              'description' in story && 'criteria' in story
+            );
+            
+            setStories(validStories);
           } else {
             console.error('Invalid stories data format:', data.stories);
             toast.error("Invalid stories data format");
