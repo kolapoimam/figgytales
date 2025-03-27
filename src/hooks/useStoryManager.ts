@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { UserStory, GenerationHistory, StorySettings, AIRequest } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { generateUserStories, saveGenerationHistory, createStoryShareLink, fetchUserHistory } from '@/services/fileService';
-import { useNavigate } from 'react-router-dom';
 
 export const useStoryManager = (
   files: any[], 
@@ -17,7 +16,6 @@ export const useStoryManager = (
   });
   
   const [history, setHistory] = useState<GenerationHistory[]>([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (stories.length > 0) {
@@ -26,7 +24,6 @@ export const useStoryManager = (
   }, [stories]);
 
   const generateStories = useCallback(async () => {
-    console.log('useStoryManager generateStories called with:', { files, settings, userId });
     if (files.length === 0) {
       toast.error("No design files", {
         description: "Please upload at least one design file before generating stories."
@@ -37,22 +34,16 @@ export const useStoryManager = (
     setIsGenerating(true);
     try {
       const imagePromises = files.map(file => {
-        return new Promise<string>((resolve, reject) => {
+        return new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onloadend = () => {
-            console.log('FileReader result for file:', file.file.name, reader.result);
             resolve(reader.result as string);
-          };
-          reader.onerror = (error) => {
-            console.error('FileReader error for file:', file.file.name, error);
-            reject(error);
           };
           reader.readAsDataURL(file.file);
         });
       });
       
       const imageBase64s = await Promise.all(imagePromises);
-      console.log('Base64 images:', imageBase64s);
       
       const aiRequest: AIRequest = {
         prompt: `Generate ${settings.storyCount} user stories with ${settings.criteriaCount} acceptance criteria each based on these design screens. Each user story should follow the format 'As a [user type], I want to [action], so that [benefit]'. Make sure acceptance criteria are clear and testable.`,
@@ -66,18 +57,10 @@ export const useStoryManager = (
         aiRequest.audienceType = settings.audienceType;
       }
       
-      console.log('Calling generateUserStories with request:', aiRequest);
       const generatedStories = await generateUserStories(aiRequest);
-      console.log('Generated stories:', generatedStories);
-      
-      if (!Array.isArray(generatedStories) || generatedStories.length === 0) {
-        throw new Error('No stories returned from API');
-      }
-
       setStories(generatedStories);
       
       if (userId) {
-        console.log('Saving generation history for user:', userId);
         await saveGenerationHistory(userId, generatedStories, settings);
         
         const newHistoryEntry: GenerationHistory = {
@@ -94,18 +77,15 @@ export const useStoryManager = (
         description: `${generatedStories.length} user stories created based on your designs.`
       });
       
-      // Navigate to stories page
-      navigate('/stories');
-      
     } catch (error) {
       console.error('Error generating stories:', error);
       toast.error("Failed to generate stories", {
-        description: error instanceof Error ? error.message : "There was an error processing your design files. Please try again later."
+        description: "There was an error processing your design files. Please try again later."
       });
     } finally {
       setIsGenerating(false);
     }
-  }, [files, settings, userId, setIsGenerating, navigate]);
+  }, [files, settings, userId, setIsGenerating]);
 
   const createShareLink = useCallback(async () => {
     if (stories.length === 0) {
