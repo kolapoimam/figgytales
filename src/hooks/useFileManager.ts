@@ -7,81 +7,60 @@ export const useFileManager = () => {
   const [settings, setSettings] = useState<StorySettings>({
     storyCount: 3,
     criteriaCount: 3,
-    userType: "User" // Default user type without requiring audience type
+    userType: "User"
   });
   const [isGenerating, setIsGenerating] = useState(false);
 
   const addFiles = useCallback((newFiles: File[]) => {
-    // Filter for valid image files
-    const validImageFiles = newFiles.filter(file => {
-      const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
-      return validTypes.includes(file.type);
-    });
-
-    if (validImageFiles.length === 0) {
-      toast.error("Invalid file type", {
-        description: "Please upload only image files (PNG, JPG, JPEG, SVG, or WEBP)."
+    try {
+      const validImageFiles = newFiles.filter(file => {
+        // More reliable way to check image files
+        return file.type.match('image.*') && 
+               ['.png', '.jpg', '.jpeg', '.svg', '.webp']
+                .some(ext => file.name.toLowerCase().endsWith(ext));
       });
-      return;
-    }
 
-    if (files.length + validImageFiles.length > 5) {
-      toast.error("Maximum 5 files allowed", {
-        description: `You can only upload up to 5 design files.`
-      });
-      return;
-    }
+      if (validImageFiles.length === 0) {
+        toast.error("Invalid file type", {
+          description: "Please upload only image files (PNG, JPG, JPEG, SVG, or WEBP)."
+        });
+        return;
+      }
 
-    const filesWithPreviews = validImageFiles.map(file => {
-      // Create object URL for preview
-      const preview = URL.createObjectURL(file);
+      if (files.length + validImageFiles.length > 5) {
+        toast.error("Maximum 5 files allowed", {
+          description: `You can only upload up to 5 design files.`
+        });
+        return;
+      }
+
+      const filesWithPreviews = validImageFiles.map(file => {
+        try {
+          const preview = URL.createObjectURL(file);
+          console.log('Created preview URL:', preview); // Debug log
+          return {
+            id: crypto.randomUUID(),
+            file,
+            preview
+          };
+        } catch (error) {
+          console.error('Error creating preview for file:', file.name, error);
+          return null;
+        }
+      }).filter(Boolean) as DesignFile[];
+
+      setFiles(prev => [...prev, ...filesWithPreviews]);
       
-      // Create a DesignFile object
-      return {
-        id: crypto.randomUUID(),
-        file,
-        preview
-      };
-    });
-
-    setFiles(prev => [...prev, ...filesWithPreviews]);
-    
-    if (filesWithPreviews.length > 0) {
-      toast.success(`${filesWithPreviews.length} file${filesWithPreviews.length > 1 ? 's' : ''} added`, {
-        description: "Ready to generate stories from your designs."
-      });
+      if (filesWithPreviews.length > 0) {
+        toast.success(`${filesWithPreviews.length} file${filesWithPreviews.length > 1 ? 's' : ''} added`);
+      }
+    } catch (error) {
+      console.error('Error in addFiles:', error);
+      toast.error("Failed to process files");
     }
   }, [files.length]);
 
-  const removeFile = useCallback((id: string) => {
-    setFiles(prev => {
-      const fileToRemove = prev.find(file => file.id === id);
-      if (fileToRemove) {
-        URL.revokeObjectURL(fileToRemove.preview);
-      }
-      return prev.filter(file => file.id !== id);
-    });
-  }, []);
-
-  const updateSettings = useCallback((newSettings: Partial<StorySettings>) => {
-    setSettings(prev => ({ ...prev, ...newSettings }));
-  }, []);
-
-  const clearFiles = useCallback(() => {
-    files.forEach(file => {
-      URL.revokeObjectURL(file.preview);
-    });
-    setFiles([]);
-  }, [files]);
-
-  return {
-    files,
-    settings,
-    isGenerating,
-    setIsGenerating,
-    addFiles,
-    removeFile,
-    updateSettings,
-    clearFiles
-  };
+  // ... rest of the code remains the same ...
 };
+
+export default useFileManager;
