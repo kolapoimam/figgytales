@@ -10,24 +10,23 @@ interface RoadmapDialogProps {
   onOpenChange: (open: boolean) => void;
   features: UpcomingFeature[];
   onUpvote: (featureId: string) => void;
-  upvoting: string | null;
 }
 
-const RoadmapDialog: React.FC<RoadmapDialogProps> = ({
-  open,
-  onOpenChange,
-  features,
-  onUpvote,
-  upvoting,
+const RoadmapDialog: React.FC<RoadmapDialogProps> = ({ 
+  open, 
+  onOpenChange, 
+  features, 
+  onUpvote 
 }) => {
   const { theme } = useTheme();
+  const sortedFeatures = [...features].sort((a, b) => b.upvotes - a.upvotes);
 
   const cardStyle = {
     background: theme === 'dark'
       ? 'linear-gradient(135deg, rgba(247, 131, 51, 0.7), rgba(200, 100, 30, 0.5))'
       : 'linear-gradient(135deg, rgba(50, 50, 50, 0.7), rgba(20, 20, 20, 0.5))',
-    backdropFilter: 'blur(10px)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(10px)', // Adds a glassmorphism effect
+    border: '1px solid rgba(255, 255, 255, 0.1)', // Subtle border for the mirror effect
   };
 
   const textStyle = {
@@ -54,21 +53,21 @@ const RoadmapDialog: React.FC<RoadmapDialogProps> = ({
         <DialogHeader>
           <DialogTitle>FiggyTales Roadmap</DialogTitle>
         </DialogHeader>
-
+        
         <div className="space-y-6 mt-4">
-          {features.map((feature) => (
+          {sortedFeatures.map((feature) => (
             <div key={feature.id} className="flex gap-4 p-4 border border-border rounded-lg" style={cardStyle}>
               <div className="flex-1">
                 <h3 className="font-medium text-lg" style={textStyle}>{feature.title}</h3>
                 <p className="text-muted-foreground mt-1" style={textStyle}>{feature.description}</p>
               </div>
               <div className="flex flex-col items-center">
-                <Button
+                <Button 
                   onClick={() => onUpvote(feature.id)}
                   variant="outline"
                   size="sm"
                   style={buttonStyle}
-                  disabled={feature.hasUpvoted || upvoting === feature.id}
+                  disabled={feature.hasUpvoted}
                 >
                   <ThumbsUp size={16} style={iconStyle} />
                 </Button>

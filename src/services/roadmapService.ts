@@ -1,158 +1,134 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import { UpcomingFeature } from '@/lib/types';
 
-// Ensure these are set in your environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
-  },
-});
-
-// Updated default features to match Supabase table
+// Seed data for features
 const defaultFeatures: Omit<UpcomingFeature, 'id' | 'upvotes' | 'hasUpvoted'>[] = [
   {
-    title: 'AI Story Templates',
-    description: 'Pre-made templates for common user stories',
+    title: 'Export to Jira',
+    description: 'Export your generated user stories directly to Jira as tickets',
   },
   {
-    title: 'AI Voice Narration',
-    description: 'Listen to AI narrate your user stories for better understanding',
-  },
-  {
-    title: 'Design to API Integration',
-    description: 'Automatically generate API endpoints from your designs',
-  },
-  {
-    title: 'Collaborative Editing',
-    description: 'Work on user stories with your team in real-time',
-  },
-  {
-    title: 'Jira Integration',
-    description: 'Export user stories directly to Jira board',
-  },
-  {
-    title: 'Batch Export to PDF',
-    description: 'Export multiple stories at once to a PDF document',
-  },
-  {
-    title: 'Custom Export Templates',
-    description: 'Create and use custom templates for exporting',
-  },
-  {
-    title: 'Integrated Testing',
-    description: 'Generate test cases directly from acceptance criteria',
+    title: 'AI Story Refinement',
+    description: 'Get AI suggestions to improve your user stories based on best practices',
   },
   {
     title: 'Team Collaboration',
-    description: 'Invite team members to collaborate on story generation',
+    description: 'Invite team members to collaborate on story generation and refinement',
   },
   {
-    title: 'Custom Fields',
-    description: 'Add custom fields to your stories to track additional information',
-  }
+    title: 'Custom Templates',
+    description: 'Create and save custom templates for different types of projects',
+  },
+  {
+    title: 'Story Prioritization',
+    description: 'AI-assisted prioritization of stories based on impact and effort',
+  },
+  {
+    title: 'API Integration',
+    description: 'Connect with other tools via API to streamline your workflow',
+  },
 ];
 
-// Enhanced initialization of features
+// Initialize features in the database if none exist
 export const initializeFeatures = async () => {
-  try {
-    // First, check if features exist
-    const { data: existingFeatures, error: selectError } = await supabase
-      .from('upcoming_features')
-      .select('id')
-      .limit(1);
+  const { data: existingFeatures, error } = await supabase
+    .from('upcoming_features')
+    .select('id')
+    .limit(1);
 
-    if (selectError) {
-      console.error('Error checking features:', selectError);
-      return;
-    }
+  if (error) {
+    console.error('Error checking existing features:', error);
+    throw new Error('Failed to initialize features');
+  }
 
-    // If no features exist, insert default features
-    if (!existingFeatures || existingFeatures.length === 0) {
+  if (!existingFeatures || existingFeatures.length === 0) {
+    // Insert default features
+    for (const feature of defaultFeatures) {
       const { error: insertError } = await supabase
         .from('upcoming_features')
-        .insert(defaultFeatures);
+        .insert(feature);
 
       if (insertError) {
-        console.error('Error inserting features:', insertError);
+        console.error('Error inserting feature:', insertError);
+        throw new Error('Failed to initialize features');
       }
     }
-  } catch (error) {
-    console.error('Unexpected error in feature initialization:', error);
   }
 };
 
-// Enhanced feature fetching with more robust error handling
+// Fetch features with upvote counts
 export const fetchFeatures = async (): Promise<UpcomingFeature[]> => {
-  try {
-    // Initialize features if needed
-    await initializeFeatures();
+  await initializeFeatures();
 
-    // Get current user or generate a client ID
+  try {
+    // Get user ID or clientId for determining hasUpvoted
     const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
     const clientId = localStorage.getItem('clientId') || crypto.randomUUID();
-    
     if (!localStorage.getItem('clientId')) {
       localStorage.setItem('clientId', clientId);
     }
 
-    // Fetch features using RPC
     const { data: featuresData, error: featuresError } = await supabase
       .rpc('get_features_with_counts', {
-        p_user_id: user?.id || null,
-        p_client_id: !user ? clientId : null,
+        p_user_id: userId || null,
+        p_client_id: !userId ? clientId : null,
       });
 
     if (featuresError) {
-      console.error('RPC Error fetching features:', featuresError);
+      console.error('Error fetching features:', featuresError);
+      throw new Error('Failed to fetch features');
+    }
+
+    if (!featuresData || featuresData.length === 0) {
       return [];
     }
 
-    // Process and return features
-    return (featuresData || []).map((feature: any) => ({
+    // Process the data
+    const processedFeatures = featuresData.map((feature: any) => ({
       id: feature.id,
       title: feature.title,
       description: feature.description,
       upvotes: Number(feature.upvote_count) || 0,
       hasUpvoted: feature.has_upvoted || false,
       created_at: feature.created_at,
-    }));
+    }) as UpcomingFeature);
 
+    return processedFeatures; // Sorting is now handled by the RPC
   } catch (error) {
-    console.error('Comprehensive error fetching features:', error);
-    return [];
+    console.error('Error fetching features:', error);
+    throw error;
   }
 };
 
-// Robust upvote feature with enhanced error handling
+// Upvote a feature
 export const upvoteFeature = async (featureId: string): Promise<boolean> => {
   try {
-    // Generate client ID if not exists
+    // Generate a clientId if user is not logged in
     const clientId = localStorage.getItem('clientId') || crypto.randomUUID();
-    localStorage.setItem('clientId', clientId);
+    if (!localStorage.getItem('clientId')) {
+      localStorage.setItem('clientId', clientId);
+    }
 
-    // Get current user
+    // Get the current user ID if logged in
     const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
 
-    // Use RPC for upvoting
+    // Using stored procedure to handle upvote
     const { error } = await supabase.rpc('upvote_feature', {
       p_feature_id: featureId,
-      p_user_id: user?.id || null,
-      p_client_id: !user ? clientId : null,
+      p_user_id: userId || null,
+      p_client_id: !userId ? clientId : null,
     });
 
     if (error) {
-      console.error('Upvote RPC Error:', error);
+      console.error('Error upvoting:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Comprehensive upvote error:', error);
+    console.error('Error upvoting feature:', error);
     return false;
   }
 };
