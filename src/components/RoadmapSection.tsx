@@ -10,7 +10,12 @@ const RoadmapSection: React.FC = () => {
   const [features, setFeatures] = useState<UpcomingFeature[]>(() => {
     const savedFeatures = sessionStorage.getItem('features');
     if (savedFeatures) {
-      return JSON.parse(savedFeatures);
+      // On page load, reset hasUpvoted to false but keep upvotes
+      const parsedFeatures = JSON.parse(savedFeatures);
+      return parsedFeatures.map((feature: UpcomingFeature) => ({
+        ...feature,
+        hasUpvoted: false, // Reset on refresh
+      }));
     }
     return [
       { id: "1", title: "AI Story Templates", description: "Pre-made templates for common user story scenarios to speed up story creation", upvotes: 0, hasUpvoted: false },
@@ -29,12 +34,9 @@ const RoadmapSection: React.FC = () => {
   const { user } = useFiles();
 
   useEffect(() => {
-    // Load features from sessionStorage on mount
-    const savedFeatures = sessionStorage.getItem('features');
-    if (savedFeatures) {
-      setFeatures(JSON.parse(savedFeatures));
-    }
-  }, []);
+    // Save features to sessionStorage whenever they change
+    sessionStorage.setItem('features', JSON.stringify(features));
+  }, [features]);
 
   const handleUpvote = (featureId: string) => {
     const updatedFeatures = features.map(feature =>
@@ -44,10 +46,6 @@ const RoadmapSection: React.FC = () => {
     ).sort((a, b) => b.upvotes - a.upvotes);
 
     setFeatures(updatedFeatures);
-
-    // Save to sessionStorage
-    sessionStorage.setItem('features', JSON.stringify(updatedFeatures));
-
     toast.success('Thanks for your vote!');
   };
 
