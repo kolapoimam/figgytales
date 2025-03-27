@@ -24,24 +24,32 @@ export const useFileManager = () => {
       return;
     }
     
-    const filesWithPreviews = imageFiles.map(file => {
-      // Create object URL for preview
-      const preview = URL.createObjectURL(file);
+    const filesWithPreviewsPromises = imageFiles.map(file => 
+      new Promise<DesignFile>((resolve) => {
+        // Create object URL for preview
+        const preview = URL.createObjectURL(file);
+        
+        // Create a DesignFile object
+        const designFile: DesignFile = {
+          id: crypto.randomUUID(),
+          file,
+          preview
+        };
+        
+        resolve(designFile);
+      })
+    );
+    
+    // Wait for all previews to be generated
+    Promise.all(filesWithPreviewsPromises).then(filesWithPreviews => {
+      setFiles(prev => [...prev, ...filesWithPreviews]);
       
-      return {
-        id: crypto.randomUUID(),
-        file,
-        preview
-      };
+      if (filesWithPreviews.length > 0) {
+        toast.success(`${filesWithPreviews.length} file${filesWithPreviews.length > 1 ? 's' : ''} added`, {
+          description: "Ready to generate stories from your designs."
+        });
+      }
     });
-    
-    setFiles(prev => [...prev, ...filesWithPreviews]);
-    
-    if (imageFiles.length > 0) {
-      toast.success(`${imageFiles.length} file${imageFiles.length > 1 ? 's' : ''} added`, {
-        description: "Ready to generate stories from your designs."
-      });
-    }
   }, [files.length]);
 
   const removeFile = useCallback((id: string) => {

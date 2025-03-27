@@ -1,10 +1,9 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/Button';
 import { ChevronLeft } from 'lucide-react';
-import { useFiles } from '@/context/FileContext';
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -12,62 +11,59 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog';
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface BackButtonProps {
   showConfirm?: boolean;
-  className?: string;
 }
 
-const BackButton: React.FC<BackButtonProps> = ({ 
-  showConfirm = false,
-  className = ""
-}) => {
+const BackButton: React.FC<BackButtonProps> = ({ showConfirm = false }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showDialog, setShowDialog] = useState(false);
-  const { stories, user } = useFiles();
-
+  
   const handleBack = () => {
-    // If we're on the results page with stories and no user is logged in, show confirmation
-    const shouldConfirm = showConfirm && stories.length > 0 && !user;
+    const isResultsPage = location.pathname === '/results';
     
-    if (shouldConfirm) {
+    if (isResultsPage && showConfirm) {
       setShowDialog(true);
     } else {
-      navigate(-1);
+      goBack();
     }
   };
-
-  const confirmNavigate = () => {
-    setShowDialog(false);
-    navigate(-1);
+  
+  const goBack = () => {
+    if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
   };
-
+  
   return (
     <>
       <Button 
-        variant="outline" 
+        variant="ghost" 
+        size="sm" 
         onClick={handleBack}
-        className={`group ${className}`}
+        className="group px-2"
       >
-        <ChevronLeft size={16} className="mr-1 group-hover:-translate-x-1 transition-transform" />
+        <ChevronLeft size={16} className="mr-1 group-hover:-translate-x-0.5 transition-transform" />
         Back
       </Button>
-
-      {/* Confirmation Dialog */}
+      
       <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Discard generated stories?</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              You are not signed in. If you go back, you will lose all your generated stories. 
-              Would you like to continue?
+              If you go back, you might lose your generated stories. Make sure to save them first if you want to keep them.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmNavigate}>Yes, go back</AlertDialogAction>
+            <AlertDialogAction onClick={goBack}>Yes, go back</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
