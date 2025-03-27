@@ -3,13 +3,7 @@ import { Button } from '@/components/Button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ThumbsUp } from 'lucide-react';
 import { UpcomingFeature } from '@/lib/types';
-
-// Adjust this based on your actual theme implementation
-const useTheme = () => {
-  // This is a placeholder; replace with your actual theme context/hook
-  const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-  return { theme };
-};
+import { useTheme } from '@/context/ThemeContext';
 
 interface FeatureCardProps {
   feature: UpcomingFeature;
