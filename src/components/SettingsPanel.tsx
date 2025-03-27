@@ -9,9 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { USER_TYPES } from '@/lib/types';
+import { useNavigate } from 'react-router-dom';
 
 const SettingsPanel: React.FC = () => {
   const { settings, updateSettings, files, generateStories, isGenerating } = useFiles();
+  const navigate = useNavigate();
   
   const handleStoryCountChange = (value: number[]) => {
     updateSettings({ storyCount: value[0] });
@@ -174,7 +176,7 @@ const SettingsPanel: React.FC = () => {
         
         <div className="pt-4">
           <Button
-            onClick={() => generateStories()}
+            onClick={() => {generateStories(); navigate('/results')} }
             disabled={files.length === 0 || isGenerating}
             isLoading={isGenerating}
             className="w-full"
