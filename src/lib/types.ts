@@ -42,6 +42,7 @@ export interface User {
   email: string;
   name: string | null;
   avatar: string | null;
+  created_at?: string;
 }
 
 export type ThemeMode = 'light' | 'dark';

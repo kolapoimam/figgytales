@@ -1,17 +1,22 @@
+
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import ThemeToggle from '@/components/ThemeToggle';
 import LoginButton from '@/components/LoginButton';
+
 interface HeaderProps {
   className?: string;
 }
+
 const Header: React.FC<HeaderProps> = ({
   className
 }) => {
   const location = useLocation();
   const isHome = location.pathname === '/';
-  return <header className={cn("w-full max-w-5xl mx-auto py-8 px-4 md:px-6 animate-fade-in", className)}>
+  
+  return (
+    <header className={cn("w-full max-w-5xl mx-auto py-8 px-4 md:px-6 animate-fade-in", className)}>
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
           <ThemeToggle />
@@ -30,6 +35,8 @@ const Header: React.FC<HeaderProps> = ({
           {isHome ? "Transform design screens into meaningful user stories" : "Your generated user stories and acceptance criteria"}
         </p>
       </div>
-    </header>;
+    </header>
+  );
 };
+
 export default Header;

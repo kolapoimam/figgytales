@@ -1,20 +1,15 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import StoryCard from '@/components/StoryCard';
 import { Button } from '@/components/Button';
+import ShareDialog from '@/components/ShareDialog';
 import { useFiles } from '@/context/FileContext';
-import { ChevronLeft, ClipboardCopy, Download, Check, Share2 } from 'lucide-react';
+import { ChevronLeft, ClipboardCopy, Download, Check, Share2, Plus } from 'lucide-react';
 import { toast } from "sonner";
 import HistoryList from '@/components/HistoryList';
 import LoginButton from '@/components/LoginButton';
-
-interface Story {
-  id: string;
-  title: string;
-  description: string;
-  criteria: { description: string }[];
-}
 
 const Results: React.FC = () => {
   const { 
@@ -22,12 +17,14 @@ const Results: React.FC = () => {
     clearFiles, 
     createShareLink, 
     user,
-    setStories // Make sure this is implemented in your context
+    setStories
   } = useFiles();
   
   const navigate = useNavigate();
   const [isCopied, setIsCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
 
   // Load stories from localStorage if context is empty
   useEffect(() => {
@@ -107,7 +104,9 @@ const Results: React.FC = () => {
   const handleShareLink = async () => {
     setIsSharing(true);
     try {
-      await createShareLink();
+      const url = await createShareLink();
+      setShareUrl(url);
+      setShareDialogOpen(true);
     } finally {
       setIsSharing(false);
     }
@@ -116,6 +115,10 @@ const Results: React.FC = () => {
   const startOver = () => {
     clearFiles();
     localStorage.removeItem('figgytales_stories');
+    navigate('/', { replace: true });
+  };
+
+  const generateMore = () => {
     navigate('/', { replace: true });
   };
 
@@ -183,13 +186,31 @@ const Results: React.FC = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {stories.map((story, i) => (
-              <StoryCard key={`${story.id}-${i}`} story={story} index={i} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+              {stories.map((story, i) => (
+                <StoryCard key={`${story.id}-${i}`} story={story} index={i} />
+              ))}
+            </div>
+            
+            <div className="flex justify-center">
+              <Button 
+                onClick={generateMore}
+                className="group"
+              >
+                <Plus size={16} className="mr-2 group-hover:rotate-90 transition-transform" />
+                Generate More Stories
+              </Button>
+            </div>
+          </>
         )}
       </div>
+      
+      <ShareDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        shareUrl={shareUrl}
+      />
     </main>
   );
 };

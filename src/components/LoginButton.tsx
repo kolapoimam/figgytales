@@ -2,37 +2,37 @@
 import React from 'react';
 import { Button } from '@/components/Button';
 import { useFiles } from '@/context/FileContext';
-import { LogIn, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { LogIn, User } from 'lucide-react';
 
 const LoginButton: React.FC = () => {
-  const { user, login, logout } = useFiles();
+  const { user } = useFiles();
+  const navigate = useNavigate();
 
   if (user) {
     return (
       <Button
         variant="outline"
         size="sm"
-        onClick={() => logout()}
+        onClick={() => navigate('/profile')}
         className="flex items-center gap-2"
       >
-        <LogOut size={16} />
-        <span>Logout</span>
+        <User size={16} />
+        <span>My Profile</span>
       </Button>
     );
   }
 
   return (
-    <div className="flex flex-col sm:flex-row gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => login('google')}
-        className="flex items-center gap-2"
-      >
-        <LogIn size={16} />
-        <span>Sign in with Google</span>
-      </Button>
-    </div>
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => navigate('/auth')}
+      className="flex items-center gap-2"
+    >
+      <LogIn size={16} />
+      <span>Sign In</span>
+    </Button>
   );
 };
 

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/lib/types';
-import { signInWithOAuth, signOut } from '@/services/authService';
+import { signInWithOAuth, signOut, signInWithEmail, signUpWithEmail } from '@/services/authService';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -15,8 +15,11 @@ export const useAuth = () => {
           setUser({
             id: session.user.id,
             email: session.user.email || '',
-            name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || null,
-            avatar: session.user.user_metadata.avatar_url || null
+            name: session.user.user_metadata.username || 
+                  session.user.user_metadata.full_name || 
+                  session.user.email?.split('@')[0] || null,
+            avatar: session.user.user_metadata.avatar_url || null,
+            created_at: session.user.created_at
           });
         } else {
           setUser(null);
@@ -30,8 +33,11 @@ export const useAuth = () => {
         setUser({
           id: session.user.id,
           email: session.user.email || '',
-          name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || null,
-          avatar: session.user.user_metadata.avatar_url || null
+          name: session.user.user_metadata.username || 
+                session.user.user_metadata.full_name || 
+                session.user.email?.split('@')[0] || null,
+          avatar: session.user.user_metadata.avatar_url || null,
+          created_at: session.user.created_at
         });
       }
     });
@@ -41,8 +47,16 @@ export const useAuth = () => {
     };
   }, []);
 
-  const login = async (provider: 'google') => {
-    await signInWithOAuth(provider);
+  const login = async (provider: 'google' | 'email', options?: { email?: string; password?: string }) => {
+    if (provider === 'google') {
+      await signInWithOAuth(provider);
+    } else if (provider === 'email' && options?.email && options?.password) {
+      await signInWithEmail(options.email, options.password);
+    }
+  };
+
+  const signup = async (email: string, password: string, username?: string) => {
+    await signUpWithEmail(email, password, username);
   };
 
   const logout = async () => {
@@ -53,6 +67,7 @@ export const useAuth = () => {
   return {
     user,
     login,
+    signup,
     logout
   };
 };

@@ -1,27 +1,20 @@
+
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import FileUploader from '@/components/FileUploader';
 import PreviewGrid from '@/components/PreviewGrid';
 import SettingsPanel from '@/components/SettingsPanel';
+import RoadmapSection from '@/components/RoadmapSection';
 import { useFiles } from '@/context/FileContext';
 
 const Index: React.FC = () => {
-  const { stories, clearFiles } = useFiles();
-  const navigate = useNavigate();
+  const { clearFiles } = useFiles();
   
   // Clear any existing stories when component mounts
   useEffect(() => {
     clearFiles();
-    localStorage.removeItem('figgytales_stories');
   }, [clearFiles]);
-
-  // Navigate to results page only if we have stories and came from generation
-  useEffect(() => {
-    if (stories.length > 0) {
-      navigate('/results', { replace: true });
-    }
-  }, [stories, navigate]);
   
   return (
     <main className="min-h-screen flex flex-col">
@@ -34,6 +27,8 @@ const Index: React.FC = () => {
         </div>
         
         <SettingsPanel />
+        
+        <RoadmapSection />
       </div>
     </main>
   );

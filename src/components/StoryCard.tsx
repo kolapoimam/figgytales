@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { UserStory } from '@/lib/types';
 import { Check, ClipboardCopy } from 'lucide-react';
@@ -15,7 +16,11 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, index }) => {
   
   // Trigger visibility after component mounts
   useEffect(() => {
-    setIsVisible(true);
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 10); // Small delay for DOM to settle
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const copyToClipboard = () => {
@@ -47,9 +52,9 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, index }) => {
       <div className="flex justify-between items-start mb-4">
         <div>
           <span className="inline-block text-xs font-medium text-muted-foreground bg-secondary px-2 py-1 rounded-full mb-2">
-            {story.title}
+            User Story
           </span>
-          <h3 className="text-xl font-medium text-card-foreground">User Story</h3>
+          <h3 className="text-xl font-medium text-card-foreground">{story.title}</h3>
         </div>
         <Button 
           variant="ghost" 

@@ -33,6 +33,30 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          avatar: string | null
+          created_at: string | null
+          email: string
+          id: string
+          name: string
+        }
+        Insert: {
+          avatar?: string | null
+          created_at?: string | null
+          email: string
+          id: string
+          name: string
+        }
+        Update: {
+          avatar?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       shared_links: {
         Row: {
           created_at: string
@@ -54,6 +78,27 @@ export type Database = {
           id?: string
           stories?: Json
           user_id?: string
+        }
+        Relationships: []
+      }
+      shared_stories: {
+        Row: {
+          created_at: string | null
+          id: string
+          stories: Json
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          stories: Json
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          stories?: Json
+          user_id?: string | null
         }
         Relationships: []
       }
