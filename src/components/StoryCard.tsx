@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { UserStory } from '@/lib/types';
 import { Check, ClipboardCopy } from 'lucide-react';
 import { Button } from '@/components/Button';
@@ -11,20 +12,9 @@ interface StoryCardProps {
 
 const StoryCard: React.FC<StoryCardProps> = ({ story, index }) => {
   const [copied, setCopied] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
   
-  // Trigger visibility after component mounts
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
-
   const copyToClipboard = () => {
-    const userStoryText = `User Story:\n${story.title}\n${story.description}`;
-    const criteriaText = `Acceptance Criteria:\n${story.criteria
-      .map((c, i) => `${i + 1}. ${c.description}`)
-      .join('\n')}`;
-    
-    const textToCopy = `${userStoryText}\n\n${criteriaText}`;
+    const textToCopy = `${story.title}\n${story.description}\n\nAcceptance Criteria:\n${story.criteria.map((c, i) => `${i + 1}. ${c.description}`).join('\n')}`;
     
     navigator.clipboard.writeText(textToCopy)
       .then(() => {
@@ -39,13 +29,9 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, index }) => {
       className={cn(
         "rounded-xl border border-border bg-card p-6 shadow-sm transition-all",
         "hover:shadow-md hover:border-primary/20",
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        "animate-slide-up opacity-0"
       )}
-      style={{
-        transitionDelay: `${index * 50}ms`,
-        transitionDuration: '300ms',
-        transitionProperty: 'opacity, transform',
-      }}
+      style={{ animationDelay: `${index * 0.1}s` }}
     >
       <div className="flex justify-between items-start mb-4">
         <div>
@@ -76,7 +62,7 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, index }) => {
         <ul className="space-y-3">
           {story.criteria.map((criterion, i) => (
             <li 
-              key={`${criterion.id}-${i}`}
+              key={criterion.id}
               className="flex items-start rounded-md p-3 bg-secondary/50 text-sm"
             >
               <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">
