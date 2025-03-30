@@ -18,8 +18,8 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, onUpvote }) => {
     background: theme === 'dark'
       ? 'linear-gradient(135deg, rgba(247, 131, 51, 0.7), rgba(200, 100, 30, 0.5))'
       : 'linear-gradient(135deg, rgba(50, 50, 50, 0.7), rgba(20, 20, 20, 0.5))',
-    backdropFilter: 'blur(10px)', // Adds a glassmorphism effect
-    border: '1px solid rgba(255, 255, 255, 0.1)', // Subtle border for the mirror effect
+    backdropFilter: 'blur(10px)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
     transition: 'transform 0.3s ease, box-shadow 0.3s ease',
     transform: 'scale(1)',
     boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
@@ -51,7 +51,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, onUpvote }) => {
 
   return (
     <Card 
-      className="h-full flex flex-col card-hover" 
+      className="h-full flex flex-col card-hover"
       style={cardStyle}
       onMouseEnter={(e) => {
         Object.assign(e.currentTarget.style, hoverStyle);

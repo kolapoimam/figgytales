@@ -60,14 +60,10 @@ export const fetchFeatures = async (): Promise<UpcomingFeature[]> => {
     
     supabase.realtime.setAuth(clientId);
     
-    // Use custom header for client ID
-    const customHeaders = {
-      'custom-client-id': clientId
-    };
-    
+    // Use custom header through the setAuth method, not directly in the request
     // Fetch features with upvote counts using RPC
     const { data: featuresData, error: featuresError } = await supabase
-      .rpc('get_features_with_counts', {}, { headers: customHeaders });
+      .rpc('get_features_with_counts');
 
     if (featuresError) {
       console.error('Error fetching features:', featuresError);
@@ -112,17 +108,15 @@ export const upvoteFeature = async (featureId: string): Promise<boolean> => {
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id;
     
-    // Set custom headers for client ID
-    const customHeaders = {
-      'custom-client-id': clientId
-    };
+    // Set the header in a custom way through auth
+    supabase.realtime.setAuth(clientId);
     
-    // Using stored procedure to handle upvote
+    // Using stored procedure to handle upvote - now updated to use ip_address instead of client_id
     const { error } = await supabase.rpc('upvote_feature', { 
       p_feature_id: featureId,
       p_user_id: userId || null,
       p_ip_address: !userId ? clientId : null
-    }, { headers: customHeaders });
+    });
     
     if (error) {
       console.error('Error upvoting:', error);
