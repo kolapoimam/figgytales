@@ -1,9 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { UserStory } from '@/lib/types';
-import { Check, ClipboardCopy } from 'lucide-react';
-import { Button } from '@/components/Button';
-import { cn } from '@/lib/utils';
 
 interface StoryCardProps {
   story: UserStory;
@@ -11,85 +10,63 @@ interface StoryCardProps {
 }
 
 const StoryCard: React.FC<StoryCardProps> = ({ story, index }) => {
-  const [copied, setCopied] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  
-  // Trigger visibility after component mounts
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-    }, 10); // Small delay for DOM to settle
-    
-    return () => clearTimeout(timer);
-  }, []);
+  // Skip the first story if it's the AI-generated summary
+  if (index === 0 && story.userStory.includes('SUMMARY') || story.userStory.includes('AI ANALYSIS')) {
+    return null;
+  }
 
-  const copyToClipboard = () => {
-    const textToCopy = `${story.title}\n${story.description}\n\nAcceptance Criteria:\n${
-      story.criteria.map((c, i) => `${i + 1}. ${c.description}`).join('\n')
-    }`;
+  // Extract a title from the user story (first line or up to first comma)
+  const getStoryTitle = () => {
+    const storyText = story.userStory;
+    // If story starts with "As a", create a title from that
+    if (storyText.startsWith('As a')) {
+      const endOfPhrase = storyText.indexOf(', so that');
+      if (endOfPhrase > 0) {
+        return storyText.substring(0, endOfPhrase).trim();
+      }
+    }
+    // Default title extraction
+    const firstComma = storyText.indexOf(',');
+    const firstPeriod = storyText.indexOf('.');
+    const firstNewline = storyText.indexOf('\n');
     
-    navigator.clipboard.writeText(textToCopy)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      })
-      .catch(err => console.error('Failed to copy: ', err));
+    let end = storyText.length;
+    if (firstComma > 0) end = Math.min(end, firstComma);
+    if (firstPeriod > 0) end = Math.min(end, firstPeriod);
+    if (firstNewline > 0) end = Math.min(end, firstNewline);
+    
+    return storyText.substring(0, end).trim();
   };
-  
+
   return (
-    <div 
-      className={cn(
-        "rounded-xl border border-border bg-card p-6 shadow-sm transition-all",
-        "hover:shadow-md hover:border-primary/20",
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-      )}
-      style={{
-        transitionDelay: `${index * 50}ms`,
-        transitionDuration: '300ms',
-        transitionProperty: 'opacity, transform',
-      }}
-    >
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <span className="inline-block text-xs font-medium text-muted-foreground bg-secondary px-2 py-1 rounded-full mb-2">
-            User Story
-          </span>
-          <h3 className="text-xl font-medium text-card-foreground">{story.title}</h3>
+    <Card className="h-full flex flex-col">
+      <CardHeader>
+        <CardTitle className="text-lg">{getStoryTitle()}</CardTitle>
+        <CardDescription>Story #{index}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex-1">
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-medium text-sm text-muted-foreground mb-2">User Story</h4>
+            <p className="text-sm">{story.userStory}</p>
+          </div>
+          
+          <Separator />
+          
+          <div>
+            <h4 className="font-medium text-sm text-muted-foreground mb-2">Acceptance Criteria</h4>
+            <ul className="list-disc pl-5 space-y-1">
+              {story.acceptanceCriteria.map((criteria, i) => (
+                <li key={i} className="text-sm">{criteria}</li>
+              ))}
+            </ul>
+          </div>
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={copyToClipboard}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          {copied ? <Check size={16} /> : <ClipboardCopy size={16} />}
-          <span className="ml-1 text-xs">{copied ? 'Copied' : 'Copy'}</span>
-        </Button>
-      </div>
-      
-      <p className="text-card-foreground mb-6">
-        {story.description}
-      </p>
-      
-      <div>
-        <h4 className="text-sm font-medium text-muted-foreground mb-3">
-          Acceptance Criteria
-        </h4>
-        <ul className="space-y-3">
-          {story.criteria.map((criterion, i) => (
-            <li 
-              key={`${criterion.id}-${i}`}
-              className="flex items-start rounded-md p-3 bg-secondary/50 text-sm"
-            >
-              <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">
-                {i + 1}
-              </span>
-              <span>{criterion.description}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+      </CardContent>
+      <CardFooter className="pt-2 text-xs text-muted-foreground">
+        Automatically generated from your design mockups
+      </CardFooter>
+    </Card>
   );
 };
 
