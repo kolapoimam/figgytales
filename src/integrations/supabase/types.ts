@@ -160,25 +160,63 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_features_with_counts: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          id: string
-          title: string
-          description: string
-          created_at: string
-          upvote_count: number
-          has_upvoted: boolean
-        }[]
-      }
-      upvote_feature: {
-        Args: {
-          p_feature_id: string
-          p_user_id?: string
-          p_ip_address?: string
-        }
-        Returns: undefined
-      }
+      get_features_with_counts:
+        | {
+            Args: Record<PropertyKey, never>
+            Returns: {
+              id: string
+              title: string
+              description: string
+              created_at: string
+              upvote_count: number
+              has_upvoted: boolean
+            }[]
+          }
+        | {
+            Args: {
+              p_user_id: string
+              p_client_id: string
+            }
+            Returns: {
+              id: string
+              title: string
+              description: string
+              upvote_count: number
+              has_upvoted: boolean
+              created_at: string
+            }[]
+          }
+        | {
+            Args: {
+              p_user_id?: string
+              p_client_id?: string
+            }
+            Returns: {
+              id: string
+              title: string
+              description: string
+              upvote_count: number
+              has_upvoted: boolean
+              created_at: string
+            }[]
+          }
+      upvote_feature:
+        | {
+            Args: {
+              p_feature_id: string
+              p_user_id: string
+              p_client_id: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_feature_id: string
+              p_user_id?: string
+              p_client_id?: string
+            }
+            Returns: undefined
+          }
     }
     Enums: {
       [_ in never]: never

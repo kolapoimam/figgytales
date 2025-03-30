@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/Button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +20,14 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, onUpvote }) => {
       : 'linear-gradient(135deg, rgba(50, 50, 50, 0.7), rgba(20, 20, 20, 0.5))',
     backdropFilter: 'blur(10px)', // Adds a glassmorphism effect
     border: '1px solid rgba(255, 255, 255, 0.1)', // Subtle border for the mirror effect
+    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+    transform: 'scale(1)',
+    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+  };
+
+  const hoverStyle = {
+    transform: 'scale(1.03)',
+    boxShadow: '0 10px 15px rgba(0, 0, 0, 0.2)'
   };
 
   const textStyle = {
@@ -27,6 +36,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, onUpvote }) => {
 
   const votesStyle = {
     color: theme === 'dark' ? '#000000' : '#ffffff',
+    fontWeight: 'bold'
   };
 
   const buttonStyle = theme === 'light' ? {
@@ -40,7 +50,17 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, onUpvote }) => {
   } : {};
 
   return (
-    <Card className="h-full flex flex-col card-hover" style={cardStyle}>
+    <Card 
+      className="h-full flex flex-col card-hover" 
+      style={cardStyle}
+      onMouseEnter={(e) => {
+        Object.assign(e.currentTarget.style, hoverStyle);
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+      }}
+    >
       <CardHeader>
         <CardTitle style={textStyle}>{feature.title}</CardTitle>
         <CardDescription style={votesStyle}>
@@ -54,11 +74,11 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, onUpvote }) => {
         <Button 
           onClick={() => onUpvote(feature.id)}
           variant="outline"
-          className="w-full"
+          className="w-full transition-all duration-300 hover:bg-opacity-80"
           style={buttonStyle}
           disabled={feature.hasUpvoted}
         >
-          <ThumbsUp size={16} className="mr-2" style={iconStyle} />
+          <ThumbsUp size={16} className={`mr-2 ${feature.hasUpvoted ? 'text-green-500' : ''}`} style={iconStyle} />
           {feature.hasUpvoted ? 'Upvoted' : 'Upvote'}
         </Button>
       </CardFooter>

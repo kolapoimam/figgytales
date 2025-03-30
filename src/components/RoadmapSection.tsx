@@ -1,53 +1,59 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/Button';
 import { toast } from 'sonner';
-import { useFiles } from '@/context/FileContext';
 import { UpcomingFeature } from '@/lib/types';
 import FeatureCard from './FeatureCard';
 import RoadmapDialog from './RoadmapDialog';
+import { fetchFeatures, upvoteFeature } from '@/services/roadmapService';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const RoadmapSection: React.FC = () => {
-  const [features, setFeatures] = useState<UpcomingFeature[]>(() => {
-    const savedFeatures = sessionStorage.getItem('features');
-    if (savedFeatures) {
-      // On page load, reset hasUpvoted to false but keep upvotes
-      const parsedFeatures = JSON.parse(savedFeatures);
-      return parsedFeatures.map((feature: UpcomingFeature) => ({
-        ...feature,
-        hasUpvoted: false, // Reset on refresh
-      }));
-    }
-    return [
-      { id: "1", title: "AI Story Templates", description: "Pre-made templates for common user story scenarios to speed up story creation", upvotes: 0, hasUpvoted: false },
-      { id: "2", title: "Batch Export to PDF", description: "Export multiple stories at once to a PDF document", upvotes: 0, hasUpvoted: false },
-      { id: "3", title: "Custom Fields", description: "Add custom fields to your stories to track additional information", upvotes: 0, hasUpvoted: false },
-      { id: "4", title: "Team Collaboration", description: "Invite team members to collaborate on story creation", upvotes: 0, hasUpvoted: false },
-      { id: "5", title: "Integrated Testing", description: "Generate test cases directly from acceptance criteria", upvotes: 0, hasUpvoted: false },
-      { id: "6", title: "Design to API Integration", description: "Automatically generate API endpoints from your design screens", upvotes: 0, hasUpvoted: false },
-      { id: "7", title: "Collaborative Editing", description: "Work on user stories with your team in real-time", upvotes: 0, hasUpvoted: false },
-      { id: "8", title: "Custom Export Templates", description: "Create and use custom templates for exporting your user stories", upvotes: 0, hasUpvoted: false },
-      { id: "9", title: "Jira Integration", description: "Export user stories directly to Jira", upvotes: 0, hasUpvoted: false },
-      { id: "10", title: "AI Voice Narration", description: "Listen to AI narrate your user stories for better comprehension", upvotes: 0, hasUpvoted: false },
-    ];
-  });
   const [showRoadmap, setShowRoadmap] = useState(false);
-  const { user } = useFiles();
+  
+  const queryClient = useQueryClient();
+  
+  // Fetch features from Supabase
+  const { data: features = [], isLoading, error } = useQuery({
+    queryKey: ['features'],
+    queryFn: fetchFeatures,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
 
-  useEffect(() => {
-    // Save features to sessionStorage whenever they change
-    sessionStorage.setItem('features', JSON.stringify(features));
-  }, [features]);
+  // Create mutation for upvoting
+  const upvoteMutation = useMutation({
+    mutationFn: (featureId: string) => upvoteFeature(featureId),
+    onSuccess: () => {
+      toast.success('Thanks for your vote!');
+      queryClient.invalidateQueries({ queryKey: ['features'] });
+    },
+    onError: () => {
+      toast.error('Failed to save your vote. Please try again.');
+    }
+  });
 
   const handleUpvote = (featureId: string) => {
-    const updatedFeatures = features.map(feature =>
-      feature.id === featureId
-        ? { ...feature, upvotes: feature.upvotes + 1, hasUpvoted: true }
-        : feature
-    ).sort((a, b) => b.upvotes - a.upvotes);
-
-    setFeatures(updatedFeatures);
-    toast.success('Thanks for your vote!');
+    upvoteMutation.mutate(featureId);
   };
+
+  if (isLoading) {
+    return (
+      <div className="mt-16 animate-slide-up text-center">
+        <p>Loading roadmap features...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error('Error loading features:', error);
+    return (
+      <div className="mt-16 animate-slide-up text-center">
+        <p className="text-muted-foreground">
+          Unable to load upcoming features. Please try again later.
+        </p>
+      </div>
+    );
+  }
 
   const topFeatures = features.slice(0, 6);
 
