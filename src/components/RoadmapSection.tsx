@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/Button';
 import { toast } from 'sonner';
 import { UpcomingFeature } from '@/lib/types';
 import FeatureCard from './FeatureCard';
 import RoadmapDialog from './RoadmapDialog';
-import { fetchFeatures, upvoteFeature } from '@/services/roadmapService';
+import { fetchUpcomingFeatures, upvoteFeature } from '@/services/roadmapService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const RoadmapSection: React.FC = () => {
@@ -16,7 +15,7 @@ const RoadmapSection: React.FC = () => {
   // Fetch features from Supabase
   const { data: features = [], isLoading, error } = useQuery({
     queryKey: ['features'],
-    queryFn: fetchFeatures,
+    queryFn: fetchUpcomingFeatures,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
