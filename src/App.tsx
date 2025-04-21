@@ -13,6 +13,7 @@ import ShareView from "./pages/ShareView";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import HistoryView from "./pages/HistoryView";
+import Header from "./components/Header";
 
 // Create a client
 const queryClient = new QueryClient();
