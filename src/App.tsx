@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -14,6 +13,7 @@ import ShareView from "./pages/ShareView";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import HistoryView from "./pages/HistoryView";
+import Header from "@/components/Header";  // Import your Header component
 
 // Create a client
 const queryClient = new QueryClient();
@@ -24,10 +24,7 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route 
-        path="/" 
-        element={<Index />} 
-      />
+      <Route path="/" element={<Index />} />
       <Route path="/results" element={<Results />} />
       <Route path="/share/:id" element={<ShareView />} />
       <Route path="/auth" element={<Auth />} />
@@ -52,6 +49,7 @@ const App: React.FC = () => {
               richColors
             />
             <BrowserRouter>
+              <Header /> {/* Add the Header here */}
               <AppRoutes />
             </BrowserRouter>
           </FileProvider>
