@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import FileUploader from '@/components/FileUploader';
 import PreviewGrid from '@/components/PreviewGrid';
+import Header from '@/components/Header';
 import SettingsPanel from '@/components/SettingsPanel';
 import RoadmapSection from '@/components/RoadmapSection';
 import Footer from '@/components/Footer';
