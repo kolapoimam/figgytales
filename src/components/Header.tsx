@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import LoginButton from './LoginButton';
@@ -18,9 +17,9 @@ import { Sparkles, LogOut, User } from 'lucide-react';
 
 const Header: React.FC = () => {
   const { user, signOut } = useAuth();
-  
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-white bg-opacity-80 backdrop-blur-lg">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
           <Sparkles className="h-6 w-6 text-orange-500" />
@@ -28,7 +27,7 @@ const Header: React.FC = () => {
             FiggyTales
           </span>
         </Link>
-        
+
         <nav className="hidden md:flex items-center space-x-6">
           <Link to="/" className="text-sm font-medium transition-colors hover:text-primary">
             Home
@@ -43,10 +42,10 @@ const Header: React.FC = () => {
             About
           </a>
         </nav>
-        
+
         <div className="flex items-center space-x-4">
           <ThemeToggle />
-          
+
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
