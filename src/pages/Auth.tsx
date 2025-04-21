@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -10,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useFiles } from '@/context/FileContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, GitHub, Google } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Auth: React.FC = () => {
@@ -86,8 +85,21 @@ const Auth: React.FC = () => {
       setIsLoading(false);
     }
   };
-  
-  // Check for reset or verification status in URL
+
+  // Google Authentication
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      redirectTo: `${window.location.origin}/auth?google=true`,
+    });
+    
+    if (error) {
+      toast.error(error.message || 'Google login failed');
+    }
+  };
+
+  // Check for reset, verification or Google login status in URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('reset') === 'true') {
@@ -97,6 +109,9 @@ const Auth: React.FC = () => {
       toast.info('Email verification successful', {
         description: 'You can now sign in with your account'
       });
+    }
+    if (params.get('google') === 'true') {
+      toast.success('Google authentication successful, you can now sign in');
     }
   }, [location]);
 
@@ -217,6 +232,17 @@ const Auth: React.FC = () => {
                       </Button>
                     </div>
                   </form>
+
+                  <div className="mt-4">
+                    <Button
+                      variant="outline"
+                      className="w-full flex justify-center items-center"
+                      onClick={handleGoogleSignIn}
+                    >
+                      <Google size={20} className="mr-2" />
+                      Sign In with Google
+                    </Button>
+                  </div>
                 </TabsContent>
                 
                 <TabsContent value="sign-up" className="space-y-4">
@@ -266,11 +292,8 @@ const Auth: React.FC = () => {
                           {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </Button>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Password must be at least 6 characters long
-                      </p>
                     </div>
-                    
+
                     <Button type="submit" className="w-full" isLoading={isLoading}>
                       Create Account
                     </Button>
@@ -279,11 +302,6 @@ const Auth: React.FC = () => {
               </Tabs>
             )}
           </CardContent>
-          <CardFooter className="flex justify-center">
-            <p className="text-xs text-muted-foreground text-center">
-              By signing up, you agree to our Terms of Service and Privacy Policy
-            </p>
-          </CardFooter>
         </Card>
       </div>
     </main>
