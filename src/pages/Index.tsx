@@ -1,6 +1,5 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import Header from '@/components/Header';
 import FileUploader from '@/components/FileUploader';
 import PreviewGrid from '@/components/PreviewGrid';
 import SettingsPanel from '@/components/SettingsPanel';
