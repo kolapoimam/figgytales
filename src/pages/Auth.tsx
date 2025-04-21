@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useFiles } from '@/context/FileContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, ArrowLeft, GitHub, Google } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, GitHub, LogIn } from 'lucide-react'; // Replaced Google with LogIn
 import { cn } from '@/lib/utils';
 
 const Auth: React.FC = () => {
@@ -239,7 +239,7 @@ const Auth: React.FC = () => {
                       className="w-full flex justify-center items-center"
                       onClick={handleGoogleSignIn}
                     >
-                      <Google size={20} className="mr-2" />
+                      <LogIn size={20} className="mr-2" /> {/* Replaced Google with LogIn */}
                       Sign In with Google
                     </Button>
                   </div>
