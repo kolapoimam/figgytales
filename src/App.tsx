@@ -13,6 +13,13 @@ import ShareView from "./pages/ShareView";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import HistoryView from "./pages/HistoryView";
+import Pricing from "./pages/Pricing";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Roadmap from "./pages/Roadmap";
+import TermsOfService from "./pages/TermsOfService";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+
 // Create a client
 const queryClient = new QueryClient();
 
@@ -28,6 +35,10 @@ const AppRoutes = () => {
       <Route path="/auth" element={<Auth />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/history/:id" element={<HistoryView />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/roadmap" element={<Roadmap />} />
+      <Route path="/terms-of-service" element={<TermsOfService />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -47,8 +58,13 @@ const App: React.FC = () => {
               richColors
             />
             <BrowserRouter>
-              <Header /> {/* Add the Header here */}
-              <AppRoutes />
+              <div className="flex flex-col min-h-screen">
+                <Header />
+                <main className="flex-1">
+                  <AppRoutes />
+                </main>
+                <Footer />
+              </div>
             </BrowserRouter>
           </FileProvider>
         </ThemeProvider>
