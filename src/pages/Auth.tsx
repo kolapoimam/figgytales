@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useFiles } from '@/context/FileContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, ArrowLeft, GitHub } from 'lucide-react'; // Removed Google
+import { Eye, EyeOff, ArrowLeft, GitHub } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Google logo SVG component
@@ -251,7 +251,7 @@ const Auth: React.FC = () => {
                         type="text"
                         placeholder="johndoe"
                         value={username}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => setUsername(e.target.value)} // Fixed typo: setEmail to setUsername
                         required
                       />
                     </div>
