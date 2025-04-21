@@ -40,25 +40,25 @@ const Header: React.FC = () => {
           <nav className="hidden md:flex items-center space-x-8">
             <Link
               to="/"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-500"
             >
               Home
             </Link>
             <a
               href="#"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-500"
             >
               Features
             </a>
             <a
               href="#"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-500"
             >
               Pricing
             </a>
             <a
               href="#"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-500"
             >
               About
             </a>
@@ -121,28 +121,28 @@ const Header: React.FC = () => {
           <nav className="md:hidden flex flex-col space-y-2 pb-4 px-4">
             <Link
               to="/"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-500"
               onClick={toggleMenu}
             >
               Home
             </Link>
             <a
               href="#"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-500"
               onClick={toggleMenu}
             >
               Features
             </a>
             <a
               href="#"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-500"
               onClick={toggleMenu}
             >
               Pricing
             </a>
             <a
               href="#"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-500"
               onClick={toggleMenu}
             >
               About
