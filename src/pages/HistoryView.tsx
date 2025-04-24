@@ -1,57 +1,72 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import StoryCard from '@/components/StoryCard';
 import { Button } from '@/components/Button';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useFiles } from '@/context/FileContext';
 import { supabase } from '@/integrations/supabase/client';
-import { UserStory } from '@/lib/types';
+import { UserStory, GenerationHistory } from '@/lib/types';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 const HistoryView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, setStories } = useFiles();
   const [isLoading, setIsLoading] = useState(true);
-  const [historyItem, setHistoryItem] = useState<{
-    stories: UserStory[];
-    timestamp: string;
-  } | null>(null);
+  const [historyItem, setHistoryItem] = useState<GenerationHistory | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Redirect if not logged in
     if (!user) {
       navigate('/auth');
       return;
     }
 
     const fetchHistoryItem = async () => {
-      if (!id) return;
+      if (!id) {
+        setError('Invalid history ID');
+        return;
+      }
       
       try {
         setIsLoading(true);
-        const { data, error } = await supabase
+        setError(null);
+        
+        const { data, error: supabaseError } = await supabase
           .from('history')
-          .select('created_at, stories')
+          .select('*')
           .eq('id', id)
           .eq('user_id', user.id)
           .single();
         
-        if (error) throw error;
+        if (supabaseError) throw supabaseError;
         
-        if (data) {
-          setHistoryItem({
-            stories: data.stories as unknown as UserStory[],
-            timestamp: data.created_at
-          });
-          
-          // Also set as current stories
-          setStories(data.stories as unknown as UserStory[]);
+        if (!data) {
+          setError('History item not found');
+          navigate('/profile');
+          return;
         }
+
+        // Validate and transform the data
+        const validatedItem: GenerationHistory = {
+          id: data.id,
+          timestamp: new Date(data.created_at),
+          stories: Array.isArray(data.stories) ? data.stories : [],
+          settings: data.settings || {
+            storyCount: 0,
+            criteriaCount: 0,
+            userType: 'User'
+          }
+        };
+
+        setHistoryItem(validatedItem);
+        setStories(validatedItem.stories);
+        
       } catch (error) {
         console.error('Error fetching history item:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load history');
         toast.error('Failed to load story history');
         navigate('/profile');
       } finally {
@@ -61,7 +76,11 @@ const HistoryView: React.FC = () => {
     
     fetchHistoryItem();
   }, [id, user, navigate, setStories]);
-  
+
+  if (!user) {
+    return null; // Already redirecting to auth
+  }
+
   return (
     <main className="min-h-screen flex flex-col">
       <Header />
@@ -76,26 +95,43 @@ const HistoryView: React.FC = () => {
             <ChevronLeft size={16} className="mr-1 group-hover:-translate-x-1 transition-transform" />
             Back to Profile
           </Button>
+          
+          {historyItem && (
+            <div className="text-sm text-muted-foreground">
+              Generated on {format(historyItem.timestamp, 'PPPp')}
+            </div>
+          )}
         </div>
         
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <Loader2 className="h-8 w-8 animate-spin" />
             <p className="mt-4 text-muted-foreground">Loading stories...</p>
           </div>
-        ) : historyItem && historyItem.stories.length > 0 ? (
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-destructive mb-4">{error}</p>
+            <Button onClick={() => navigate('/profile')}>
+              Back to Profile
+            </Button>
+          </div>
+        ) : historyItem && historyItem.stories?.length > 0 ? (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {historyItem.stories.map((story, i) => (
-                <StoryCard key={`${story.id}-${i}`} story={story} index={i} />
+              {historyItem.stories.map((story) => (
+                <StoryCard 
+                  key={story.id} 
+                  story={story} 
+                  index={historyItem.stories.indexOf(story)}
+                />
               ))}
             </div>
           </div>
         ) : (
           <div className="text-center py-12">
             <p className="text-muted-foreground">No stories found in this history item.</p>
-            <Button onClick={() => navigate('/profile')} className="mt-4">
-              Back to Profile
+            <Button onClick={() => navigate('/')} className="mt-4">
+              Generate New Stories
             </Button>
           </div>
         )}
