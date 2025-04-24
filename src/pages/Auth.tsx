@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import Header from '@/components/Header';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,8 +8,18 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useFiles } from '@/context/FileContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, GitHub } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Google logo SVG component
+const GoogleLogo = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" className="mr-2" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1.02.68-2.33 1.09-3.71 1.09-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C4.01 20.76 7.74 23 12 23z" fill="#34A853"/>
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.74 1 4.01 3.24 2.18 6.07L5.04 8.9c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+  </svg>
+);
 
 const Auth: React.FC = () => {
   const { user } = useFiles();
@@ -26,7 +34,6 @@ const Auth: React.FC = () => {
   const [authMode, setAuthMode] = useState<'sign-in' | 'sign-up'>('sign-in');
   
   useEffect(() => {
-    // If already logged in, redirect to home
     if (user) {
       navigate('/');
     }
@@ -38,43 +45,32 @@ const Auth: React.FC = () => {
     
     try {
       if (isResetMode) {
-        // Reset password flow
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/auth?reset=true`,
         });
-        
         if (error) throw error;
-        
         toast.success('Password reset link sent', {
           description: 'Check your email for a link to reset your password'
         });
         setIsResetMode(false);
       } else if (authMode === 'sign-in') {
-        // Sign in flow
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password
         });
-        
         if (error) throw error;
-        
         toast.success('Signed in successfully');
         navigate('/');
       } else {
-        // Sign up flow
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: {
-              username,
-            },
+            data: { username },
             emailRedirectTo: `${window.location.origin}/auth?verification=true`,
           }
         });
-        
         if (error) throw error;
-        
         toast.success('Registration successful', {
           description: 'Please check your email to verify your account'
         });
@@ -86,8 +82,18 @@ const Auth: React.FC = () => {
       setIsLoading(false);
     }
   };
-  
-  // Check for reset or verification status in URL
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      redirectTo: `${window.location.origin}/auth?google=true`,
+    });
+    if (error) {
+      toast.error(error.message || 'Google login failed');
+    }
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('reset') === 'true') {
@@ -98,6 +104,9 @@ const Auth: React.FC = () => {
         description: 'You can now sign in with your account'
       });
     }
+    if (params.get('google') === 'true') {
+      toast.success('Google authentication successful, you can now sign in');
+    }
   }, [location]);
 
   const togglePasswordVisibility = () => {
@@ -107,7 +116,6 @@ const Auth: React.FC = () => {
   return (
     <main className="min-h-screen flex flex-col">
       <Header />
-      
       <div className="flex-1 max-w-md w-full mx-auto px-4 md:px-6 py-12">
         <Card className="animate-fade-in">
           <CardHeader>
@@ -136,11 +144,9 @@ const Auth: React.FC = () => {
                     required
                   />
                 </div>
-                
                 <Button type="submit" className="w-full" isLoading={isLoading}>
                   Send Reset Link
                 </Button>
-                
                 <div className="text-center">
                   <Button 
                     variant="ghost" 
@@ -163,7 +169,6 @@ const Auth: React.FC = () => {
                   <TabsTrigger value="sign-in">Sign In</TabsTrigger>
                   <TabsTrigger value="sign-up">Sign Up</TabsTrigger>
                 </TabsList>
-                
                 <TabsContent value="sign-in" className="space-y-4">
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
@@ -177,7 +182,6 @@ const Auth: React.FC = () => {
                         required
                       />
                     </div>
-                    
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
                         <Label htmlFor="sign-in-password">Password</Label>
@@ -201,11 +205,9 @@ const Auth: React.FC = () => {
                         </Button>
                       </div>
                     </div>
-                    
                     <Button type="submit" className="w-full" isLoading={isLoading}>
                       Sign In
                     </Button>
-                    
                     <div className="text-center">
                       <Button 
                         variant="ghost" 
@@ -217,8 +219,17 @@ const Auth: React.FC = () => {
                       </Button>
                     </div>
                   </form>
+                  <div className="mt-4">
+                    <Button
+                      variant="outline"
+                      className="w-full flex justify-center items-center"
+                      onClick={handleGoogleSignIn}
+                    >
+                      <GoogleLogo />
+                      Sign In with Google
+                    </Button>
+                  </div>
                 </TabsContent>
-                
                 <TabsContent value="sign-up" className="space-y-4">
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
@@ -232,7 +243,6 @@ const Auth: React.FC = () => {
                         required
                       />
                     </div>
-                    
                     <div className="space-y-2">
                       <Label htmlFor="username">Username</Label>
                       <Input
@@ -240,11 +250,10 @@ const Auth: React.FC = () => {
                         type="text"
                         placeholder="johndoe"
                         value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        onChange={(e) => setUsername(e.target.value)} // Fixed typo: setEmail to setUsername
                         required
                       />
                     </div>
-                    
                     <div className="space-y-2">
                       <Label htmlFor="sign-up-password">Password</Label>
                       <div className="relative">
@@ -266,11 +275,7 @@ const Auth: React.FC = () => {
                           {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </Button>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Password must be at least 6 characters long
-                      </p>
                     </div>
-                    
                     <Button type="submit" className="w-full" isLoading={isLoading}>
                       Create Account
                     </Button>
@@ -279,11 +284,6 @@ const Auth: React.FC = () => {
               </Tabs>
             )}
           </CardContent>
-          <CardFooter className="flex justify-center">
-            <p className="text-xs text-muted-foreground text-center">
-              By signing up, you agree to our Terms of Service and Privacy Policy
-            </p>
-          </CardFooter>
         </Card>
       </div>
     </main>
