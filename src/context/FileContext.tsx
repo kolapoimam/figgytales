@@ -1,9 +1,9 @@
-
-import React, { createContext, useContext, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useCallback, useState } from 'react';
 import { DesignFile, StorySettings, UserStory, GenerationHistory, User } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useFileManager } from '@/hooks/useFileManager';
 import { useStoryManager } from '@/hooks/useStoryManager';
+import { toast } from 'sonner';
 
 interface FileContextType {
   files: DesignFile[];
@@ -12,6 +12,8 @@ interface FileContextType {
   user: User | null;
   history: GenerationHistory[];
   isGenerating: boolean;
+  isLoading: boolean;
+  error: string | null;
   addFiles: (newFiles: File[]) => void;
   removeFile: (id: string) => void;
   updateSettings: (newSettings: Partial<StorySettings>) => void;
@@ -23,12 +25,16 @@ interface FileContextType {
   getHistory: () => Promise<void>;
   clearStoredStories: () => void;
   setStories: (stories: UserStory[]) => void;
+  retryFetch: () => void;
 }
 
 const FileContext = createContext<FileContextType | undefined>(undefined);
 
 export const FileProvider = ({ children }: { children: ReactNode }) => {
   const { user, login, logout } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
   const { 
     files, 
     settings, 
@@ -50,6 +56,41 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     setStories: setStoryManagerStories
   } = useStoryManager(files, settings, user?.id || null, setIsGenerating);
 
+  // Load initial data
+  const loadInitialData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Check localStorage for stories
+      const savedStories = localStorage.getItem('figgytales_stories');
+      if (savedStories) {
+        try {
+          const parsedStories = JSON.parse(savedStories);
+          if (Array.isArray(parsedStories)) {
+            setStoryManagerStories(parsedStories);
+          }
+        } catch (e) {
+          console.error("Error parsing saved stories:", e);
+        }
+      }
+
+      // Load history if user is logged in
+      if (user) {
+        await getHistory();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+      toast.error('Failed to load initial data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, getHistory, setStoryManagerStories]);
+
+  useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
+
   // Comprehensive clear function
   const clearFiles = useCallback(() => {
     clearFileManagerFiles();
@@ -62,19 +103,17 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     setStoryManagerStories(newStories);
   }, [setStoryManagerStories]);
 
-  // Load history when user changes
-  useEffect(() => {
-    if (user) {
-      getHistory();
-    }
-  }, [user, getHistory]);
-
   // Persist stories to localStorage when they change
   useEffect(() => {
     if (stories.length > 0) {
       localStorage.setItem('figgytales_stories', JSON.stringify(stories));
     }
   }, [stories]);
+
+  // Retry mechanism
+  const retryFetch = useCallback(() => {
+    loadInitialData();
+  }, [loadInitialData]);
 
   return (
     <FileContext.Provider value={{
@@ -84,6 +123,8 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
       user,
       history,
       isGenerating,
+      isLoading,
+      error,
       addFiles,
       removeFile,
       updateSettings,
@@ -94,7 +135,8 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
       logout,
       getHistory,
       clearStoredStories,
-      setStories
+      setStories,
+      retryFetch
     }}>
       {children}
     </FileContext.Provider>
