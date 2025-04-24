@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import FileUploader from '@/components/FileUploader';
 import PreviewGrid from '@/components/PreviewGrid';
-import Header from '@/components/Header';
+// Remove Header import
 import SettingsPanel from '@/components/SettingsPanel';
 import RoadmapSection from '@/components/RoadmapSection';
 import Footer from '@/components/Footer';
@@ -38,7 +37,6 @@ const Index: React.FC = () => {
   const [showUploader, setShowUploader] = useState(false);
   const uploaderRef = useRef<HTMLDivElement>(null);
   
-  // Clear any existing stories when component mounts
   useEffect(() => {
     clearFiles();
   }, [clearFiles]);
@@ -95,7 +93,8 @@ const Index: React.FC = () => {
   ];
   
   return (
-      
+    <main className="min-h-screen flex flex-col">
+      {/* Remove <Header /> */}
       <div className="flex-1 w-full mx-auto pb-20">
         {/* Hero Carousel Section */}
         <section className="relative">
