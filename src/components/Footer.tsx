@@ -60,7 +60,7 @@ const Footer: React.FC = () => {
             © {new Date().getFullYear()} FiggyTales. All rights reserved.
           </p>
           <p className="text-sm text-muted-foreground mt-2 md:mt-0">
-            Built with ❤️ for Product Teams
+            Made with ❤️ for Product Teams
           </p>
         </div>
       </div>
