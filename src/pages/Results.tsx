@@ -32,7 +32,7 @@ const Results: React.FC = () => {
           const savedStories = localStorage.getItem('figgytales_stories');
           if (savedStories) {
             const parsedStories = JSON.parse(savedStories);
-            if (Array.isArray(parsedStories) {
+if (Array.isArray(parsedStories)) {
               setStories(parsedStories);
             }
           }
