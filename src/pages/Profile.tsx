@@ -1,19 +1,26 @@
-
+```tsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '@/components/Header';
 import { Button } from '@/components/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFiles } from '@/context/FileContext';
 import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarIcon, FileIcon, UserIcon } from 'lucide-react';
+import { CalendarIcon, FileIcon, UserIcon, MailIcon, ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { supabase } from '@/integrations/supabase/client';
 
 const Profile: React.FC = () => {
   const { user, logout, history, getHistory } = useFiles();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [firstName, setFirstName] = useState(user?.user_metadata?.first_name || '');
+  const [lastName, setLastName] = useState(user?.user_metadata?.last_name || '');
+  const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || '');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     // Redirect if not logged in
@@ -28,8 +35,57 @@ const Profile: React.FC = () => {
       .finally(() => setLoading(false));
   }, [user, navigate, getHistory]);
 
+  useEffect(() => {
+    // Update state when user changes
+    setFirstName(user?.user_metadata?.first_name || '');
+    setLastName(user?.user_metadata?.last_name || '');
+    setAvatarUrl(user?.user_metadata?.avatar_url || '');
+  }, [user]);
+
   const handleHistoryItemClick = (historyId: string) => {
     navigate(`/history/${historyId}`);
+  };
+
+  const handleUpdateProfile = async () => {
+    if (!user) return;
+
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          avatar_url: avatarUrl,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success('Profile updated successfully');
+      setEditMode(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update profile');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!user?.email) return;
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/auth?reset=true`,
+      });
+
+      if (error) throw error;
+
+      toast.success('Password reset link sent', {
+        description: 'Check your email to reset your password',
+      });
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send password reset link');
+    }
   };
 
   return (
@@ -55,21 +111,75 @@ const Profile: React.FC = () => {
               <CardHeader>
                 <CardTitle>Account Information</CardTitle>
                 <CardDescription>
-                  View your account details
+                  View and update your account details
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Avatar Display */}
+                <div className="flex items-center space-x-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={avatarUrl} alt={`${firstName} ${lastName}`} />
+                    <AvatarFallback>{(firstName || user?.email)?.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="text-lg font-semibold">
+                      {firstName} {lastName}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">{user?.email}</p>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* First Name */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <UserIcon size={16} className="text-primary" />
-                      <span className="text-sm font-medium">Username/Email</span>
+                      <span className="text-sm font-medium">First Name</span>
+                    </div>
+                    {editMode ? (
+                      <Input
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        placeholder="Enter your first name"
+                      />
+                    ) : (
+                      <div className="bg-secondary/50 p-3 rounded-md">
+                        {firstName || 'Not set'}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Last Name */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <UserIcon size={16} className="text-primary" />
+                      <span className="text-sm font-medium">Last Name</span>
+                    </div>
+                    {editMode ? (
+                      <Input
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        placeholder="Enter your last name"
+                      />
+                    ) : (
+                      <div className="bg-secondary/50 p-3 rounded-md">
+                        {lastName || 'Not set'}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <MailIcon size={16} className="text-primary" />
+                      <span className="text-sm font-medium">Email</span>
                     </div>
                     <div className="bg-secondary/50 p-3 rounded-md">
                       {user?.email}
                     </div>
                   </div>
-                  
+
+                  {/* Account Created */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <CalendarIcon size={16} className="text-primary" />
@@ -79,9 +189,58 @@ const Profile: React.FC = () => {
                       {user?.created_at ? format(new Date(user.created_at), 'PPpp') : 'N/A'}
                     </div>
                   </div>
+
+                  {/* Avatar URL (Editable) */}
+                  <div className="space-y-2 md:col-span-2">
+                    <div className="flex items-center gap-2">
+                      <ImageIcon size={16} className="text-primary" />
+                      <span className="text-sm font-medium">Avatar URL</span>
+                    </div>
+                    {editMode ? (
+                      <Input
+                        value={avatarUrl}
+                        onChange={(e) => setAvatarUrl(e.target.value)}
+                        placeholder="Enter your avatar URL"
+                      />
+                    ) : (
+                      <div className="bg-secondary/50 p-3 rounded-md truncate">
+                        {avatarUrl || 'Not set'}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                
-                <div className="pt-4 flex justify-end">
+
+                {/* Action Buttons */}
+                <div className="pt-4 flex flex-wrap justify-end gap-3">
+                  {editMode ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setEditMode(false);
+                          // Reset fields to original values
+                          setFirstName(user?.user_metadata?.first_name || '');
+                          setLastName(user?.user_metadata?.last_name || '');
+                          setAvatarUrl(user?.user_metadata?.avatar_url || '');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleUpdateProfile}
+                        isLoading={isUpdating}
+                      >
+                        Save Changes
+                      </Button>
+                    </>
+                  ) : (
+                    <Button onClick={() => setEditMode(true)}>
+                      Edit Profile
+                    </Button>
+                  )}
+                  <Button variant="outline" onClick={handleChangePassword}>
+                    Change Password
+                  </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => {
