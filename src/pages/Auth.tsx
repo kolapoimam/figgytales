@@ -1,16 +1,18 @@
+```tsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Mail, Lock, User, LogIn } from 'lucide-react';
+import { Loader2, Mail, Lock, User, LogIn, Eye, EyeOff, ImageIcon, Sparkles } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const Auth: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   
   // State for form handling
   const [isSignUp, setIsSignUp] = useState(false);
@@ -18,7 +20,9 @@ const Auth: React.FC = () => {
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [consent, setConsent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +37,22 @@ const Auth: React.FC = () => {
     checkSession();
   }, [navigate]);
 
+  // Handle query parameters for redirects (e.g., email verification, password reset)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('reset') === 'true') {
+      toast.info('You can now reset your password');
+    }
+    if (params.get('verification') === 'true') {
+      toast.info('Email verification successful', {
+        description: 'You can now sign in with your account',
+      });
+    }
+    if (params.get('google') === 'true') {
+      toast.success('Google authentication successful, you can now sign in');
+    }
+  }, [location]);
+
   // Handle email/password sign-in or sign-up
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,18 +66,19 @@ const Auth: React.FC = () => {
         }
         
         // Sign up with email/password
-const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-  email,
-  password,
-  options: {
-    data: {
-      first_name: firstName,
-      last_name: lastName,
-      full_name: `${firstName} ${lastName}`,
-    },
-    emailRedirectTo: window.location.origin,
-  }
-});
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              first_name: firstName,
+              last_name: lastName,
+              full_name: `${firstName} ${lastName}`,
+              avatar_url: avatarUrl,
+            },
+            emailRedirectTo: `${window.location.origin}/auth?verification=true`,
+          },
+        });
 
         if (signUpError) throw signUpError;
 
@@ -73,7 +94,7 @@ const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         // Sign in with email/password
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
-          password
+          password,
         });
 
         if (signInError) throw signInError;
@@ -97,7 +118,7 @@ const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/auth?google=true`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -114,13 +135,44 @@ const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     }
   };
 
+  // Handle forgot password
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Please enter your email address to reset your password.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth?reset=true`,
+      });
+
+      if (error) throw error;
+
+      toast.success('Password reset link sent', {
+        description: 'Check your email for a link to reset your password',
+      });
+    } catch (err: any) {
+      setError(err.message || 'Failed to send password reset link.');
+      toast.error(err.message || 'Password reset failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-md w-full mx-auto p-8 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-border">
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <div className="flex items-center space-x-2">
-            <span className="font-bold text-2xl">Your App Name</span>
+            <Sparkles className="h-6 w-6 text-orange-500" />
+            <span className="font-bold text-2xl bg-gradient-to-r from-orange-500 to-orange-600 text-transparent bg-clip-text">
+              FiggyTales
+            </span>
           </div>
         </div>
 
@@ -155,6 +207,9 @@ const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                     onChange={(e) => setFirstName(e.target.value)}
                     className="pl-10"
                     required
+                    autoComplete="given-name"
+                    disabled={loading}
+                    aria-label="First Name"
                   />
                 </div>
               </div>
@@ -170,6 +225,26 @@ const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                     onChange={(e) => setLastName(e.target.value)}
                     className="pl-10"
                     required
+                    autoComplete="family-name"
+                    disabled={loading}
+                    aria-label="Last Name"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="avatarUrl">Avatar URL (Optional)</Label>
+                <div className="relative">
+                  <ImageIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="avatarUrl"
+                    type="url"
+                    placeholder="https://example.com/avatar.jpg"
+                    value={avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                    className="pl-10"
+                    autoComplete="url"
+                    disabled={loading}
+                    aria-label="Avatar URL"
                   />
                 </div>
               </div>
@@ -187,6 +262,9 @@ const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10"
                 required
+                autoComplete="email"
+                disabled={loading}
+                aria-label="Email Address"
               />
             </div>
           </div>
@@ -196,16 +274,43 @@ const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 id="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10"
+                className="pl-10 pr-10"
                 required
                 minLength={6}
+                autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                disabled={loading}
+                aria-label="Password"
               />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={loading}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </Button>
             </div>
           </div>
+
+          {!isSignUp && (
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-sm text-primary hover:underline"
+                disabled={loading}
+              >
+                Forgot Password?
+              </button>
+            </div>
+          )}
 
           {isSignUp && (
             <div className="flex items-center space-x-2">
@@ -213,14 +318,15 @@ const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                 id="consent"
                 checked={consent}
                 onCheckedChange={(checked: boolean) => setConsent(checked)}
+                disabled={loading}
               />
               <Label htmlFor="consent" className="text-sm text-muted-foreground">
                 I agree to the{' '}
-                <a href="/terms" className="text-primary hover:underline">
+                <a href="/terms-of-service" className="text-primary hover:underline">
                   Terms
                 </a>{' '}
                 and{' '}
-                <a href="/privacy" className="text-primary hover:underline">
+                <a href="/privacy-policy" className="text-primary hover:underline">
                   Privacy Policy
                 </a>
               </Label>
@@ -235,52 +341,81 @@ const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             {loading ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
-              <LogIn className="mr-2 h-5 w-5" />
-            )}
+              <LogIn className="mr-2 h-5 RacerA3D5F8F5W5W5W5W5W5W5W5W5W5W5W5W5W3 -up sm:ml-2 h-5 w-5" />
+            )
             {isSignUp ? 'Sign Up' : 'Sign In'}
-          </Button>
-        </form>
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          }
+          // Divider
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white dark:bg-gray-900 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </.div>
 
-        {/* Divider */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white dark:bg-gray-900 text-muted-foreground">
-              Or continue with
-            </span>
-          </div>
-        </div>
-
-        {/* Google Sign-In */}
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={handleGoogleSignIn}
-          disabled={loading}
-        >
-          {loading ? (
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          ) : (
-            <FcGoogle className="mr-2 h-5 w-5" />
-          )}
-          Sign {isSignUp ? 'Up' : 'In'} with Google
-        </Button>
-
-        {/* Toggle Sign-In/Sign-Up */}
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-          <button
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setError(null);
-            }}
-            className="text-primary hover:underline"
+          // Google Sign-In
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
           >
-            {isSignUp ? 'Sign In' : 'Sign Up'}
-          </button>
-        </p>
+            {loading ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <FcGoogle className="mr-2 h-.s w-5" />
+            )}
+            Sign {isSignUp ? 'Up' : 'In'} with Google
+          </Button>
+
+          // Toggle Sign-In/Sign-Up
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+            <button
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError(null);
+                setFirstName('');
+                setLastName('');
+                setAvatarUrl('');
+                setEmail('');
+                setPassword('');
+                setConsent(false);
+                setShowPassword(false);
+              }}
+              className="text-primary hover:underline"
+            >
+              {isSignUp ? 'Sign In' : 'Sign Up'}
+            </button>
+          </p>
+        </form>
       </div>
     </div>
   );
