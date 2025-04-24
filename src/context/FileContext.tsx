@@ -1,5 +1,14 @@
+// FileContext.tsx
 import React, { createContext, useContext, ReactNode, useEffect, useCallback, useState } from 'react';
-import { DesignFile, StorySettings, UserStory, GenerationHistory, User } from '@/lib/types';
+import { 
+  DesignFile, 
+  StorySettings, 
+  UserStory, 
+  GenerationHistory, 
+  User,
+  AIRequest,
+  AIResponse
+} from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useFileManager } from '@/hooks/useFileManager';
 import { useStoryManager } from '@/hooks/useStoryManager';
@@ -18,11 +27,11 @@ interface FileContextType {
   removeFile: (id: string) => void;
   updateSettings: (newSettings: Partial<StorySettings>) => void;
   clearFiles: () => void;
-  generateStories: () => Promise<void>;
+  generateStories: (request: AIRequest) => Promise<AIResponse>;
   createShareLink: () => Promise<string>;
   login: (provider: 'google' | 'email', options?: any) => Promise<void>;
   logout: () => Promise<void>;
-  getHistory: () => Promise<void>;
+  getHistory: () => Promise<GenerationHistory[]>;
   clearStoredStories: () => void;
   setStories: (stories: UserStory[]) => void;
   retryFetch: () => void;
@@ -56,17 +65,33 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     setStories: setStoryManagerStories
   } = useStoryManager(files, settings, user?.id || null, setIsGenerating);
 
-  // Load initial data
+  // Enhanced generateStories function with proper typing
+  const handleGenerateStories = useCallback(async (request: AIRequest) => {
+    try {
+      setIsGenerating(true);
+      setError(null);
+      const response = await generateStories(request);
+      return response;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate stories');
+      toast.error('Story generation failed');
+      throw err;
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [generateStories, setIsGenerating]);
+
+  // Load initial data with proper typing
   const loadInitialData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       
-      // Check localStorage for stories
+      // Load from localStorage with validation
       const savedStories = localStorage.getItem('figgytales_stories');
       if (savedStories) {
         try {
-          const parsedStories = JSON.parse(savedStories);
+          const parsedStories = JSON.parse(savedStories) as UserStory[];
           if (Array.isArray(parsedStories)) {
             setStoryManagerStories(parsedStories);
           }
@@ -75,13 +100,14 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // Load history if user is logged in
       if (user) {
-        await getHistory();
+        const historyData = await getHistory();
+        return historyData;
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
       toast.error('Failed to load initial data');
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -91,26 +117,22 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
     loadInitialData();
   }, [loadInitialData]);
 
-  // Comprehensive clear function
   const clearFiles = useCallback(() => {
     clearFileManagerFiles();
     localStorage.removeItem('figgytales_files');
     localStorage.removeItem('figgytales_settings');
   }, [clearFileManagerFiles]);
 
-  // Set stories directly (for restoring from localStorage)
   const setStories = useCallback((newStories: UserStory[]) => {
     setStoryManagerStories(newStories);
   }, [setStoryManagerStories]);
 
-  // Persist stories to localStorage when they change
   useEffect(() => {
     if (stories.length > 0) {
       localStorage.setItem('figgytales_stories', JSON.stringify(stories));
     }
   }, [stories]);
 
-  // Retry mechanism
   const retryFetch = useCallback(() => {
     loadInitialData();
   }, [loadInitialData]);
@@ -129,7 +151,7 @@ export const FileProvider = ({ children }: { children: ReactNode }) => {
       removeFile,
       updateSettings,
       clearFiles,
-      generateStories,
+      generateStories: handleGenerateStories,
       createShareLink,
       login,
       logout,
