@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -23,7 +24,10 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Index />} />
+      <Route 
+        path="/" 
+        element={<Index />} 
+      />
       <Route path="/results" element={<Results />} />
       <Route path="/share/:id" element={<ShareView />} />
       <Route path="/auth" element={<Auth />} />
@@ -48,7 +52,6 @@ const App: React.FC = () => {
               richColors
             />
             <BrowserRouter>
-              <Header /> {/* Add the Header here */}
               <AppRoutes />
             </BrowserRouter>
           </FileProvider>
