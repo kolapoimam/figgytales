@@ -209,81 +209,94 @@ Acceptance Criteria:
 });
 
 function parseAIResponseToStories(text: string, expectedStoryCount: number, expectedCriteriaCount: number): UserStory[] {
-  // First check if the response contains the expected structure
-  if (!text.includes("User Story:") || !text.includes("Acceptance Criteria:")) {
-    console.warn("AI response doesn't follow expected format, attempting to parse anyway");
-  }
+  // First normalize the text by removing excessive whitespace and markdown artifacts
+  const normalizedText = text
+    .replace(/\*\*/g, '')
+    .replace(/\*/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 
-  // Split the text by story delimiters
-  const storyBlocks = text.split(/(?:\n---\n|Story #\d+:)/).filter(block => 
-    block.trim().length > 0 && 
-    !block.includes("Here are") && 
-    !block.includes("SUMMARY")
-  );
+  // More robust splitting that handles different delimiters
+  const storyBlocks = normalizedText.split(/(?:\n---\n|====|\n\*\*\*\n)/)
+    .map(block => block.trim())
+    .filter(block => block.length > 0 && !block.includes('Example Output'));
 
   const stories: UserStory[] = [];
 
-  // Process each story block
-  for (let i = 0; i < Math.min(storyBlocks.length, expectedStoryCount); i++) {
-    const block = storyBlocks[i].trim();
-    
-    // Extract title
-    const titleMatch = block.match(/Title:\s*(.*?)(?:\n|$)/i);
-    let title = titleMatch ? titleMatch[1].trim() : `User Story ${i + 1}`;
-    
-    // Extract user story
-    const storyMatch = block.match(/User Story:\s*(.*?)(?:\nAcceptance Criteria:|$)/is);
-    let description = storyMatch ? storyMatch[1].trim() : block.split('\n')[0].trim();
-    
-    // Clean up the description
-    description = description.replace(/^As an /, 'As a '); // Normalize "an" to "a"
-    
-    // Extract acceptance criteria
-    const criteria: AcceptanceCriterion[] = [];
-    const criteriaSectionMatch = block.match(/Acceptance Criteria:\s*([\s\S]*?)(?:\n---|\nStory|$)/i);
-    
-    if (criteriaSectionMatch) {
-      const criteriaText = criteriaSectionMatch[1];
-      const criteriaItems = criteriaText.split(/\n\d+\.|\n-/).filter(item => item.trim().length > 0);
+  for (const block of storyBlocks.slice(0, expectedStoryCount)) {
+    try {
+      // Extract title - more flexible matching
+      const titleMatch = block.match(/(?:Title|Feature):\s*(.*?)(?:\n|$)/i);
+      let title = titleMatch ? titleMatch[1].trim() : '';
       
-      for (let j = 0; j < Math.min(criteriaItems.length, expectedCriteriaCount); j++) {
-        criteria.push({
-          id: uuidv4(),
-          description: criteriaItems[j].trim().replace(/^\d+\.\s*/, ''),
+      // If no formal title, try to extract from first line
+      if (!title && block.includes('User Story:')) {
+        const firstLine = block.split('\n')[0].trim();
+        title = firstLine.replace(/^Title:\s*/i, '');
+      }
+
+      // Extract user story - more resilient parsing
+      const storyMatch = block.match(/User Story:\s*([\s\S]*?)(?:\nAcceptance Criteria:|$)/i);
+      let description = storyMatch ? storyMatch[1].trim() : '';
+      
+      // Fallback: if no "User Story:" label, look for "As a..." pattern
+      if (!description) {
+        const asAMatch = block.match(/As a .*?, I want .*?, so that .*?(?:\n|$)/i);
+        if (asAMatch) description = asAMatch[0].trim();
+      }
+
+      // Extract criteria with better handling of different formats
+      const criteria: AcceptanceCriterion[] = [];
+      const criteriaSectionMatch = block.match(/Acceptance Criteria:\s*([\s\S]*?)(?:\n---|\n====|\n\*\*\*|$)/i);
+      
+      if (criteriaSectionMatch) {
+        const criteriaText = criteriaSectionMatch[1];
+        // Handle both numbered and bulleted lists
+        const criteriaItems = criteriaText.split(/\n\d+\.|\n-|\n\*/)
+          .map(item => item.trim())
+          .filter(item => item.length > 0);
+        
+        criteriaItems.slice(0, expectedCriteriaCount).forEach((item, index) => {
+          criteria.push({
+            id: uuidv4(),
+            description: item.replace(/^\d+\.\s*|^[-*]\s*/, '').trim(),
+          });
         });
       }
+
+      // Only add if we have valid content
+      if (description || criteria.length > 0) {
+        stories.push({
+          id: uuidv4(),
+          title: title || `Feature ${stories.length + 1}`,
+          description: description || `User story ${stories.length + 1}`,
+          criteria: criteria.length > 0 ? criteria : Array.from(
+            { length: expectedCriteriaCount }, 
+            (_, i) => ({
+              id: uuidv4(),
+              description: `The system shall perform required behavior ${i + 1}`
+            })
+          )
+        });
+      }
+    } catch (error) {
+      console.warn(`Error parsing story block: ${error}`);
+      continue;
     }
-    
-    // Add default criteria if none were found
-    while (criteria.length < expectedCriteriaCount) {
-      criteria.push({
-        id: uuidv4(),
-        description: `The system shall perform expected behavior for criterion ${criteria.length + 1}`,
-      });
-    }
-    
-    // Create the user story
-    stories.push({
-      id: uuidv4(),
-      title: title.length > 100 ? title.substring(0, 97) + '...' : title,
-      description: description.length > 500 ? description.substring(0, 497) + '...' : description,
-      criteria,
-    });
   }
-  
-  // Add default stories if we didn't get enough
+
+  // Fill in any missing stories with placeholders
   while (stories.length < expectedStoryCount) {
-    const index = stories.length + 1;
     stories.push({
       id: uuidv4(),
-      title: `User Story ${index}`,
-      description: `As a user, I want to perform core functionality ${index}, so that I can achieve my goals.`,
-      criteria: Array.from({ length: expectedCriteriaCount }, (_, j) => ({
+      title: `Feature ${stories.length + 1}`,
+      description: `As a ${requestData?.userType || 'user'}, I want to perform core functionality ${stories.length + 1}`,
+      criteria: Array.from({ length: expectedCriteriaCount }, (_, i) => ({
         id: uuidv4(),
-        description: `The system shall properly handle scenario ${j + 1} for story ${index}`,
-      })),
+        description: `The system shall properly handle requirement ${i + 1}`
+      }))
     });
   }
-  
-  return stories;
+
+  return stories.slice(0, expectedStoryCount);
 }
