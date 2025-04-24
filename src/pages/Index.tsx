@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import FileUploader from '@/components/FileUploader';
 import PreviewGrid from '@/components/PreviewGrid';
-// Remove Header import
 import SettingsPanel from '@/components/SettingsPanel';
 import RoadmapSection from '@/components/RoadmapSection';
 import Footer from '@/components/Footer';
@@ -94,63 +93,63 @@ const Index: React.FC = () => {
   
   return (
     <main className="min-h-screen flex flex-col">
-      {/* Remove <Header /> */}
-      <div className="flex-1 w-full mx-auto pb-20">
-        {/* Hero Carousel Section */}
-        <section className="relative">
-          <Carousel className="w-full">
-            <CarouselContent>
-              {carouselImages.map((image, index) => (
-                <CarouselItem key={index}>
-                  <div className="relative h-[70vh] w-full overflow-hidden">
-                    <div 
-                      className="absolute inset-0 bg-cover bg-center" 
-                      style={{ 
-                        backgroundImage: `url(${image.src})`,
-                        filter: 'brightness(0.7)'
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                    <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
-                      <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 max-w-4xl">
-                        {image.title}
-                      </h1>
-                      <p className="text-xl md:text-2xl text-white/90 max-w-2xl mb-8">
-                        {image.description}
-                      </p>
-                      <Button 
-                        onClick={scrollToUploader} 
-                        size="lg" 
-                        className="bg-orange-500 hover:bg-orange-600 text-white"
-                      >
-                        <Sparkles className="mr-2 h-5 w-5" />
-                        Get Started
-                      </Button>
-                    </div>
+      {/* Full-width hero carousel */}
+      <section className="relative w-full">
+        <Carousel className="w-full">
+          <CarouselContent>
+            {carouselImages.map((image, index) => (
+              <CarouselItem key={index}>
+                <div className="relative h-[70vh] w-full overflow-hidden">
+                  <div 
+                    className="absolute inset-0 bg-cover bg-center" 
+                    style={{ 
+                      backgroundImage: `url(${image.src})`,
+                      filter: 'brightness(0.7)'
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                  <div className="relative h-full flex flex-col justify-center items-center text-center p-6 max-w-7xl mx-auto">
+                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 px-4">
+                      {image.title}
+                    </h1>
+                    <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl px-4">
+                      {image.description}
+                    </p>
+                    <Button 
+                      onClick={scrollToUploader} 
+                      size="lg" 
+                      className="bg-orange-500 hover:bg-orange-600 text-white"
+                    >
+                      <Sparkles className="mr-2 h-5 w-5" />
+                      Get Started
+                    </Button>
                   </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <div className="absolute bottom-4 left-4 z-10">
-              <CarouselPrevious className="bg-white/20 hover:bg-white/40 border-0" />
-            </div>
-            <div className="absolute bottom-4 right-4 z-10">
-              <CarouselNext className="bg-white/20 hover:bg-white/40 border-0" />
-            </div>
-          </Carousel>
-          
-          <div className="absolute bottom-0 left-0 right-0 flex justify-center">
-            <div 
-              className="animate-bounce bg-white/20 p-2 w-10 h-10 ring-1 ring-white/20 shadow-lg rounded-full flex items-center justify-center mb-4 cursor-pointer"
-              onClick={scrollToUploader}
-            >
-              <ChevronDown className="h-6 w-6 text-white" />
-            </div>
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <div className="absolute bottom-4 left-4 z-10">
+            <CarouselPrevious className="bg-white/20 hover:bg-white/40 border-0" />
           </div>
-        </section>
+          <div className="absolute bottom-4 right-4 z-10">
+            <CarouselNext className="bg-white/20 hover:bg-white/40 border-0" />
+          </div>
+        </Carousel>
         
+        <div className="absolute bottom-0 left-0 right-0 flex justify-center">
+          <div 
+            className="animate-bounce bg-white/20 p-2 w-10 h-10 ring-1 ring-white/20 shadow-lg rounded-full flex items-center justify-center mb-4 cursor-pointer"
+            onClick={scrollToUploader}
+          >
+            <ChevronDown className="h-6 w-6 text-white" />
+          </div>
+        </div>
+      </section>
+      
+      {/* Main content container with max-width */}
+      <div className="flex-1 w-full mx-auto pb-20 max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Key Features Section */}
-        <section className="py-20 px-4 md:px-8 max-w-7xl mx-auto">
+        <section className="py-20">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">How FiggyTales Transforms Your Design Process</h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -173,8 +172,8 @@ const Index: React.FC = () => {
         </section>
         
         {/* How It Works Section */}
-        <section className="py-20 px-4 md:px-8 bg-secondary/30">
-          <div className="max-w-7xl mx-auto">
+        <section className="py-20 bg-secondary/30 rounded-xl">
+          <div className="px-6">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -217,7 +216,7 @@ const Index: React.FC = () => {
         </section>
         
         {/* FAQ Section */}
-        <section className="py-20 px-4 md:px-8 max-w-4xl mx-auto">
+        <section className="py-20">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -270,7 +269,7 @@ const Index: React.FC = () => {
         </section>
         
         {/* Get Started Section */}
-        <div ref={uploaderRef} className={`max-w-5xl mx-auto px-4 md:px-6 transition-all duration-500 ease-in-out ${showUploader ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
+        <div ref={uploaderRef} className={`transition-all duration-500 ease-in-out ${showUploader ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
           <div className="bg-secondary/30 p-8 rounded-xl mb-10 border border-border">
             <h2 className="text-2xl font-semibold mb-6 text-center">Get Started</h2>
             <FileUploader />
@@ -282,7 +281,7 @@ const Index: React.FC = () => {
         </div>
         
         {!showUploader && (
-          <section className="py-16 px-4 text-center">
+          <section className="py-16 text-center">
             <Button 
               onClick={scrollToUploader} 
               size="lg" 
