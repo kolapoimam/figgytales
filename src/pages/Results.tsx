@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -8,6 +7,8 @@ import LoginButton from '@/components/LoginButton';
 import ResultsActions from '@/components/ResultsActions';
 import StoriesList from '@/components/StoriesList';
 import ShareDialog from '@/components/ShareDialog';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 const Results: React.FC = () => {
   const { 
@@ -21,22 +22,30 @@ const Results: React.FC = () => {
   const navigate = useNavigate();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  const [loading, setLoading] = useState(true);
 
   // Load stories from localStorage if context is empty
   useEffect(() => {
-    if (stories.length === 0) {
-      const savedStories = localStorage.getItem('figgytales_stories');
-      if (savedStories) {
-        try {
-          const parsedStories = JSON.parse(savedStories);
-          if (Array.isArray(parsedStories) && parsedStories.length > 0) {
-            setStories(parsedStories);
+    const loadStories = async () => {
+      try {
+        if (stories.length === 0) {
+          const savedStories = localStorage.getItem('figgytales_stories');
+          if (savedStories) {
+            const parsedStories = JSON.parse(savedStories);
+            if (Array.isArray(parsedStories) {
+              setStories(parsedStories);
+            }
           }
-        } catch (e) {
-          console.error("Error parsing saved stories:", e);
         }
+      } catch (e) {
+        console.error("Error loading stories:", e);
+        toast.error("Failed to load saved stories");
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    loadStories();
   }, [stories.length, setStories]);
 
   // Persist stories to localStorage when they change
@@ -50,13 +59,28 @@ const Results: React.FC = () => {
 
   const handleShareLink = async () => {
     try {
+      setLoading(true);
       const url = await createShareLink();
       setShareUrl(url);
       setShareDialogOpen(true);
     } catch (error) {
       console.error('Error creating share link:', error);
+      toast.error('Failed to create share link');
+    } finally {
+      setLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -87,7 +111,22 @@ const Results: React.FC = () => {
           </div>
         )}
         
-        <StoriesList stories={stories} />
+        {stories.length > 0 ? (
+          <StoriesList stories={stories} />
+        ) : (
+          <div className="text-center py-12">
+            <h3 className="text-xl font-medium mb-2">No stories generated</h3>
+            <p className="text-muted-foreground mb-6">
+              It looks like you haven't generated any stories yet
+            </p>
+            <button
+              onClick={() => navigate('/')}
+              className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+            >
+              Generate Stories
+            </button>
+          </div>
+        )}
       </div>
       
       <ShareDialog
