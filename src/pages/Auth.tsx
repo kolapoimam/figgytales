@@ -46,18 +46,18 @@ const Auth: React.FC = () => {
         }
         
         // Sign up with email/password
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              first_name: firstName,
-              last_name: lastName,
-              full_name: `${firstName} ${lastName}`,
-            },
-            emailRedirectTo: window.location.origin,
-          }
-        });
+const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+  email,
+  password,
+  options: {
+    data: {
+      first_name: firstName,
+      last_name: lastName,
+      full_name: `${firstName} ${lastName}`,
+    },
+    emailRedirectTo: window.location.origin,
+  }
+});
 
         if (signUpError) throw signUpError;
 
