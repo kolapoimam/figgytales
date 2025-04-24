@@ -95,8 +95,6 @@ const Index: React.FC = () => {
   ];
   
   return (
-    <main className="min-h-screen flex flex-col">
-      <Header />
       
       <div className="flex-1 w-full mx-auto pb-20">
         {/* Hero Carousel Section */}
