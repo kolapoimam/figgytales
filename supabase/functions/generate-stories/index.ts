@@ -34,40 +34,74 @@ serve(async (req: Request) => {
     }
 
     // Enhanced prompt for better quality user stories
-    let userPrompt = `
+let userPrompt = `
 Generate ${requestData.storyCount} clear, granular user stories with ${requestData.criteriaCount} specific acceptance criteria each based on these design screens.
 
 Key requirements for each user story:
-1. Follow the exact format: "As a [user role], I want to [action], so that [benefit/value]"
-2. User role should be specific (e.g., "registered user" not just "user")
-3. Action should be concrete and testable
-4. Benefit should explain the real business value
+1. Follow the exact format: "As a [specific user role], I want to [concrete action], so that [clear business value]"
+   - Example: "As a merchant, I want to submit transactions for settlement, so that I receive my funds"
+2. User role must be specific (e.g., "admin user" not just "user")
+3. Action should be concrete, testable, and implementation-agnostic
+4. Benefit must explain real business value, not just features
 
 For acceptance criteria:
-1. Each must be independently testable
+1. Each must be independently testable and specific
 2. Start with action verbs ("System shall...", "User can...")
-3. Include edge cases where relevant
-4. Be specific about conditions and outcomes
+3. Include edge cases and validation rules where relevant
+4. Be specific about conditions, outcomes, and success metrics
+
+Output format for each story:
+---
+Title: [Short, descriptive feature name (3-5 words)] 
+User Story: [Complete narrative in "As a..." format]
+Acceptance Criteria:
+1. [First testable criterion]
+2. [Second testable criterion]
+...
+
+Critical requirements:
+1. NEVER include "Story #1", "Story #2" etc. in the output
+2. Title must be a feature name, NOT the user story text
+3. User story must be the complete narrative text
+4. Criteria should be numbered but without story references
 
 Additional context:
 - Target audience: ${requestData.audienceType || 'general'}
 - Primary user type: ${requestData.userType}
 - Design focus: ${requestData.images.length} screen${requestData.images.length > 1 ? 's' : ''} provided
+${requestData.images.length > 3 ? '\nNote: Multiple screens provided - ensure stories cover complete user flows' : ''}
+${requestData.userType.includes('Admin') ? '\nFocus: For admin stories, emphasize permissions and system configuration' : ''}
 
-Output format for each story:
+Quality assurance:
+- Stories must be small, focused, and atomic
+- Absolutely no technical implementation details
+- Business value must be clearly articulated
+- Use consistent terminology matching the designs
+- Ensure titles are distinct from user story narratives
+- Maintain parallel structure in acceptance criteria
+`;
+
+// Example of expected output format:
+const exampleOutput = `
 ---
-Title: [Concise title summarizing the story]
-User Story: [Full user story text]
+Title: Transaction Settlement
+User Story: As a merchant, I want to submit transactions for settlement, so that I receive my funds.
 Acceptance Criteria:
-1. [First criterion]
-2. [Second criterion]
-...
+1. The system shall submit all authorized transactions to the payment gateway
+2. The interface shall display a confirmation message upon successful submission
+3. The system shall update transaction status to "submitted for settlement"
+4. The system shall notify the merchant via email within 5 minutes
+---
 
-Please ensure:
-- Stories are small, focused, and atomic
-- No technical implementation details
-- Business value is clearly articulated
-- Consistent terminology with the designs
+---
+Title: Dashboard Analytics
+User Story: As a sales manager, I want to view real-time sales metrics, so that I can make data-driven decisions.
+Acceptance Criteria:
+1. The dashboard shall display current day's sales figures
+2. The system shall update metrics at least every 15 minutes
+3. Users shall be able to filter data by region and product line
+4. The system shall highlight anomalies exceeding 10% variance
+---
 `;
 
     // Add conditional prompt enhancements based on input
