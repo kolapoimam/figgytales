@@ -1,4 +1,4 @@
-
+// types.ts
 export interface DesignFile {
   id: string;
   file: File;
@@ -8,8 +8,8 @@ export interface DesignFile {
 export interface StorySettings {
   storyCount: number;
   criteriaCount: number;
-  audienceType?: string; // "internal" or "external", now optional
-  userType: string; // selected user type
+  audienceType?: 'internal' | 'external'; // Explicit union type
+  userType: string;
 }
 
 export interface AcceptanceCriterion {
@@ -52,7 +52,7 @@ export interface AIRequest {
   images: string[];
   storyCount: number;
   criteriaCount: number;
-  audienceType?: string; // Now optional
+  audienceType?: 'internal' | 'external';
   userType: string;
 }
 
@@ -60,14 +60,16 @@ export interface AIResponse {
   stories: UserStory[];
 }
 
-// User types for dropdown
 export const USER_TYPES = {
   internal: ["Developer", "Product Manager", "Designer", "QA Engineer", "Business Analyst"],
   external: ["Customer", "End User", "Administrator", "Guest User", "Mobile User", "Power User"],
   default: ["User", "Customer", "Administrator", "Guest", "Developer"]
-};
+} as const;
 
-// Upcoming feature interfaces
+export type InternalUserType = typeof USER_TYPES.internal[number];
+export type ExternalUserType = typeof USER_TYPES.external[number];
+export type DefaultUserType = typeof USER_TYPES.default[number];
+
 export interface UpcomingFeature {
   id: string;
   title: string;
