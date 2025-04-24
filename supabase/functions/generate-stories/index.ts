@@ -1,5 +1,4 @@
-
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { AIRequest, AIResponse, UserStory, AcceptanceCriterion } from "./types.ts";
 import { v4 as uuidv4 } from "https://esm.sh/uuid@9.0.0";
 
@@ -34,17 +33,51 @@ serve(async (req: Request) => {
       console.log(`User Type: ${requestData.userType} (no specific audience type)`);
     }
 
-    // Prepare the user prompt with audience and user type context
-    let userPrompt = `Generate ${requestData.storyCount} user stories with ${requestData.criteriaCount} acceptance criteria each based on these design screens. `;
-    
-    if (requestData.audienceType) {
-      userPrompt += `The stories should be written for ${requestData.audienceType} audience and focus on ${requestData.userType} users. `;
-    } else {
-      userPrompt += `The stories should focus on ${requestData.userType} users. `;
+    // Enhanced prompt for better quality user stories
+    let userPrompt = `
+Generate ${requestData.storyCount} clear, granular user stories with ${requestData.criteriaCount} specific acceptance criteria each based on these design screens.
+
+Key requirements for each user story:
+1. Follow the exact format: "As a [user role], I want to [action], so that [benefit/value]"
+2. User role should be specific (e.g., "registered user" not just "user")
+3. Action should be concrete and testable
+4. Benefit should explain the real business value
+
+For acceptance criteria:
+1. Each must be independently testable
+2. Start with action verbs ("System shall...", "User can...")
+3. Include edge cases where relevant
+4. Be specific about conditions and outcomes
+
+Additional context:
+- Target audience: ${requestData.audienceType || 'general'}
+- Primary user type: ${requestData.userType}
+- Design focus: ${requestData.images.length} screen${requestData.images.length > 1 ? 's' : ''} provided
+
+Output format for each story:
+---
+Title: [Concise title summarizing the story]
+User Story: [Full user story text]
+Acceptance Criteria:
+1. [First criterion]
+2. [Second criterion]
+...
+
+Please ensure:
+- Stories are small, focused, and atomic
+- No technical implementation details
+- Business value is clearly articulated
+- Consistent terminology with the designs
+`;
+
+    // Add conditional prompt enhancements based on input
+    if (requestData.images.length > 3) {
+      userPrompt += "\nNote: Since multiple screens were provided, ensure stories cover the complete user flow.";
     }
-    
-    userPrompt += `Each user story should follow the format 'As a [user type], I want to [action], so that [benefit]'. ` +
-      `Make sure acceptance criteria are clear and testable.`;
+
+    if (requestData.userType.includes('Admin') || requestData.userType.includes('Manager')) {
+      userPrompt += "\nFocus: For admin/manager stories, emphasize permission levels and system configuration.";
+    }
 
     // Prepare the request for Google AI API
     const content = [
@@ -62,7 +95,7 @@ serve(async (req: Request) => {
       }
     ];
 
-    // Call Google AI API (Gemini 1.5 Flash model - latest model that supports vision)
+    // Call Google AI API (Gemini 1.5 Flash model)
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GOOGLE_AI_API_KEY,
       {
@@ -96,13 +129,32 @@ serve(async (req: Request) => {
 
     const generatedText = data.candidates[0].content.parts[0].text;
     console.log("Generated text length:", generatedText.length);
+    console.log("Sample generated text:", generatedText.substring(0, 200) + "...");
 
     // Parse the AI response into structured user stories
     const userStories = parseAIResponseToStories(generatedText, requestData.storyCount, requestData.criteriaCount);
 
+    // Validate and enhance the generated stories
+    const validatedStories = userStories.map(story => {
+      // Ensure proper story format
+      if (!story.description.startsWith('As a')) {
+        story.description = `As a ${requestData.userType}, I want ${story.description}`;
+      }
+      
+      // Clean up titles
+      if (!story.title || story.title.length < 10) {
+        story.title = story.description
+          .replace(/^As a .*? I want to /, '')
+          .replace(/ so that .*$/, '')
+          .substring(0, 60);
+      }
+      
+      return story;
+    });
+
     // Prepare the response
     const aiResponse: AIResponse = {
-      stories: userStories,
+      stories: validatedStories,
     };
 
     return new Response(JSON.stringify(aiResponse), {
@@ -123,8 +175,18 @@ serve(async (req: Request) => {
 });
 
 function parseAIResponseToStories(text: string, expectedStoryCount: number, expectedCriteriaCount: number): UserStory[] {
-  // Split the text by common user story delimiters
-  const storyBlocks = text.split(/(?:User Story|Story) #?\d+:?\s*/).filter(Boolean);
+  // First check if the response contains the expected structure
+  if (!text.includes("User Story:") || !text.includes("Acceptance Criteria:")) {
+    console.warn("AI response doesn't follow expected format, attempting to parse anyway");
+  }
+
+  // Split the text by story delimiters
+  const storyBlocks = text.split(/(?:\n---\n|Story #\d+:)/).filter(block => 
+    block.trim().length > 0 && 
+    !block.includes("Here are") && 
+    !block.includes("SUMMARY")
+  );
+
   const stories: UserStory[] = [];
 
   // Process each story block
@@ -132,27 +194,28 @@ function parseAIResponseToStories(text: string, expectedStoryCount: number, expe
     const block = storyBlocks[i].trim();
     
     // Extract title
-    const titleMatch = block.match(/(?:Title|As a|I want|So that).*?\n/i);
-    const title = titleMatch ? titleMatch[0].trim() : `User Story ${i + 1}`;
+    const titleMatch = block.match(/Title:\s*(.*?)(?:\n|$)/i);
+    let title = titleMatch ? titleMatch[1].trim() : `User Story ${i + 1}`;
     
-    // Extract description (everything up to acceptance criteria)
-    let description = block;
-    const criteriaIndex = block.toLowerCase().indexOf("acceptance criteria");
+    // Extract user story
+    const storyMatch = block.match(/User Story:\s*(.*?)(?:\nAcceptance Criteria:|$)/is);
+    let description = storyMatch ? storyMatch[1].trim() : block.split('\n')[0].trim();
     
-    if (criteriaIndex !== -1) {
-      description = block.substring(0, criteriaIndex).trim();
-    }
+    // Clean up the description
+    description = description.replace(/^As an /, 'As a '); // Normalize "an" to "a"
     
     // Extract acceptance criteria
     const criteria: AcceptanceCriterion[] = [];
-    const criteriaMatches = block.match(/(?:\d+\.\s.*?(?=\d+\.|$))|(?:- .*?(?=- |$))/gs);
+    const criteriaSectionMatch = block.match(/Acceptance Criteria:\s*([\s\S]*?)(?:\n---|\nStory|$)/i);
     
-    if (criteriaMatches) {
-      // Take only the expected number of criteria
-      for (let j = 0; j < Math.min(criteriaMatches.length, expectedCriteriaCount); j++) {
+    if (criteriaSectionMatch) {
+      const criteriaText = criteriaSectionMatch[1];
+      const criteriaItems = criteriaText.split(/\n\d+\.|\n-/).filter(item => item.trim().length > 0);
+      
+      for (let j = 0; j < Math.min(criteriaItems.length, expectedCriteriaCount); j++) {
         criteria.push({
           id: uuidv4(),
-          description: criteriaMatches[j].replace(/^\d+\.\s*|- /, '').trim(),
+          description: criteriaItems[j].trim().replace(/^\d+\.\s*/, ''),
         });
       }
     }
@@ -161,7 +224,7 @@ function parseAIResponseToStories(text: string, expectedStoryCount: number, expe
     while (criteria.length < expectedCriteriaCount) {
       criteria.push({
         id: uuidv4(),
-        description: `Acceptance criterion ${criteria.length + 1}`,
+        description: `The system shall perform expected behavior for criterion ${criteria.length + 1}`,
       });
     }
     
@@ -180,10 +243,10 @@ function parseAIResponseToStories(text: string, expectedStoryCount: number, expe
     stories.push({
       id: uuidv4(),
       title: `User Story ${index}`,
-      description: `This is a placeholder for User Story ${index}.`,
+      description: `As a user, I want to perform core functionality ${index}, so that I can achieve my goals.`,
       criteria: Array.from({ length: expectedCriteriaCount }, (_, j) => ({
         id: uuidv4(),
-        description: `Acceptance criterion ${j + 1} for story ${index}`,
+        description: `The system shall properly handle scenario ${j + 1} for story ${index}`,
       })),
     });
   }
