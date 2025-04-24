@@ -25,7 +25,6 @@ const Header: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/40 bg-white/80 dark:bg-transparent backdrop-blur-lg">
-      {/* Constrain the max width and center the content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -40,25 +39,25 @@ const Header: React.FC = () => {
           <nav className="hidden md:flex items-center space-x-8">
             <Link
               to="/"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-400"
             >
               Home
             </Link>
             <a
               href="#"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-400"
             >
               Features
             </a>
             <a
               href="#"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-400"
             >
               Pricing
             </a>
             <a
               href="#"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-400"
             >
               About
             </a>
@@ -121,28 +120,28 @@ const Header: React.FC = () => {
           <nav className="md:hidden flex flex-col space-y-2 pb-4 px-4">
             <Link
               to="/"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-400"
               onClick={toggleMenu}
             >
               Home
             </Link>
             <a
               href="#"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-400"
               onClick={toggleMenu}
             >
               Features
             </a>
             <a
               href="#"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-400"
               onClick={toggleMenu}
             >
               Pricing
             </a>
             <a
               href="#"
-              className="text-sm font-medium transition-colors text-gray-700 dark:text-black hover:text-orange-500 dark:hover:text-orange-500"
+              className="text-sm font-medium transition-colors text-gray-700 dark:text-white hover:text-orange-500 dark:hover:text-orange-400"
               onClick={toggleMenu}
             >
               About
